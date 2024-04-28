@@ -1,0 +1,59 @@
+@startuml
+
+skinparam linetype ortho
+
+entity "Users" as users {
+    *id : ID <<generated>>
+	--
+    fired : bool
+    role : string
+    login : string
+    hash : binary
+    surname : string
+    name : string
+    patronim : string <<NULL>>
+    phone : string
+    details : string <<NULL>>
+}
+
+entity "Drivers expirience" as drv_exp {
+    *driver_id : ID <<FK>>
+    --
+    experience : int
+}
+
+entity "Routes" as routes {
+    *id : ID <<generated>>
+    --
+    active : bool
+    start_point : string
+    end_point : string
+    length : int
+    details : string
+    client_price : money
+    driver_fee_base : money
+}
+
+entity "Transportations" as transps {
+    *id : ID <<generated>>
+    --
+    status : int
+    route : ID <<FK>>
+    start_time : time
+    end_time : time
+    drivers : ID <<FK>>
+}
+
+entity "Drivers for transportation" as drv_transp {
+    *id : ID <<generated>>
+    --
+    driver_id : ID <<FK>>
+    driver_bonus : money
+}
+
+users ||..o| drv_exp
+transps ||..|{ drv_transp
+transps ||..o{ routes
+drv_transp }o..|| users
+
+@enduml
