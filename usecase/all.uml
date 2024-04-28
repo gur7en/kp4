@@ -1,0 +1,13 @@
+@startuml
+
+actor "Пользователь" as user
+
+usecase "Войти в систему" as login
+usecase "Сменить пароль" as change_passw
+usecase "Выйти из системы" as logout
+
+user -left-> login
+user -down-> change_passw
+user -right-> logout
+
+@enduml

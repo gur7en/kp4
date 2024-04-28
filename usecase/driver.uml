@@ -1,0 +1,10 @@
+@startuml
+
+actor "Водитель" as driver
+
+usecase "Посмотреть\nсвои перевозки\n(и оплату за них)" as view_transp
+
+driver -right-> view_transp
+
+@enduml
+

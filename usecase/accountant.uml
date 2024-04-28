@@ -1,0 +1,13 @@
+@startuml
+
+actor "Отдел кадров\nБухгалтерия" as accountant
+
+usecase "Добавить пользователя" as add_user
+usecase "Удалить пользователя" as del_user
+usecase "Расчёт зарплаты\nводителя" as salary_drv
+
+accountant -left-> add_user
+accountant -right-> del_user
+accountant -down-> salary_drv
+
+@enduml

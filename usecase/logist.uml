@@ -1,0 +1,21 @@
+@startuml
+
+actor "Логист" as logist
+
+usecase "Назначить перевозку\nодному водителю" as add_transp
+usecase "Назначить перевозку\nдвум водителям" as add_transp_2
+usecase "Завершить перевозку" as final_transp
+usecase "Отменить перевозку" as cancel_transp
+usecase "Добавить маршрут" as add_route
+usecase "Редактировать маршрут" as edit_route
+usecase "Удалить маршрут" as del_route
+
+logist -up-> add_transp
+logist -up-> add_transp_2
+logist -up-> final_transp
+logist -up-> cancel_transp
+logist -down-> add_route
+logist -down-> edit_route
+logist -down-> del_route
+
+@enduml
