@@ -1,11 +1,8 @@
 @startuml
 
 actor "Логист" as logist
-
 boundary "Домашнее окно\nлогиста" as w_home
-
 boundary "Окно добавления\nперевозки" as w_addtran
-
 database "База данных" as db 
 
 logist -> w_home : Перейти на вкладку\nПеревозки

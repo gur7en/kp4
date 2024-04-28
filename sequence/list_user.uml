@@ -1,0 +1,11 @@
+@startuml
+
+actor "Бухгалтер" as accounter
+boundary "Домашнее окно\nбухгалтера" as w_home
+database "База данных" as db 
+
+accounter -> w_home : Переключиться на\nвкладку роли\nпользователей
+w_home -> db : Запрос списка пользователей\nс выбранной ролью
+w_home <-- db : Список пользователей
+
+@enduml

@@ -1,11 +1,8 @@
 @startuml
 
 actor "Бухгалтер" as accounter
-
 boundary "Домашнее окно\nбухгалтера" as w_home
-
 boundary "Окно добавления\nпользователя" as w_adduser
-
 database "База данных" as db 
 
 accounter -> w_home : Нажать кнопку\nДобавить пользователя

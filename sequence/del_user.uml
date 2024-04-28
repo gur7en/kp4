@@ -1,0 +1,27 @@
+@startuml
+
+actor "Бухгалтер" as accounter
+boundary "Домашнее окно\nбухгалтера" as w_home
+boundary "Окно подтверждения" as w_ask
+database "База данных" as db 
+
+accounter -> w_home : Переключиться на\nвкладку роли\nудаляемого пользователя
+accounter -> w_home : Выбрать пользователя
+accounter -> w_home : Нажать кнопку Удалить
+w_home -> w_ask ** : Отобразить
+alt#Gold #Pink Отказ от удаления
+    accounter -> w_ask : Нажать кнопку Отмена
+else #LightBlue Удалить пользователя
+    accounter -> w_ask : Нажать кнопку Подтвердить
+    w_ask -> db : Проверить наличие\nсвязанных записей
+    w_ask <-- db : Результат
+    alt#Gold #Pink Есть связанные записи
+        accounter <-- w_ask : Отобразить ошибку
+    else #LightBlue Нет связанных записей
+        w_ask -> db : Удалить пользователя
+        w_ask <-- db : Пользователь удалён
+    end
+end
+w_ask -> w_ask !! : Завершить
+
+@enduml

@@ -1,9 +1,7 @@
 @startuml
 
 actor "Водитель" as driver
-
 boundary "Домашнее окно\nводителя" as w_home
-
 database "База данных" as db 
 
 ' activate w_home
