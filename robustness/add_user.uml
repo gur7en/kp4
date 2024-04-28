@@ -1,0 +1,38 @@
+@startuml
+
+actor "Бухгалтер" as accounter
+
+entity "База данных" as db 
+
+boundary "Домашнее окно\nбухгалтера" as w_home
+control "Отобразить\nдомашнее окно" as dw_home
+
+boundary "Окно добавления\nпользователя" as w_adduser
+control "Отобразить окно\nдобавления пользователя" as dw_adduser
+control "Проверить\nкорректность\nданных" as check_data
+control "Проверить, что\nлогин свободен" as check_login
+control "Добавить пользователя" as add_user
+
+control "Отобразить ошибку\nнекорректных данных" as err_data #red
+control "Отобразить ошибку\nзанятого логина" as err_login #red
+
+' =============================================================================
+
+accounter -- w_home
+accounter -- w_adduser
+
+w_home --> dw_adduser : "Нажата кнопка\nДобавить пользователя"
+dw_adduser --> w_adduser
+dw_home --> w_home
+
+w_adduser --> check_data : "Нажата кнопка\nПодтвердить"
+check_data --> check_login : "Данные корректны"
+check_data --> err_data : "Данные некорректны"
+check_login --> add_user : "Логин свободен"
+check_login --> err_login : "Логин занят" 
+add_user --> dw_home
+
+check_login --> db
+add_user --> db
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+
+actor "Бухгалтер" as accounter
+
+entity "База данных" as db 
+
+boundary "Домашнее окно\nбухгалтера" as w_home
+control "Отобразить\nдомашнее окно" as dw_home
+control "Открыть вкладку\nЛогисты" as ot_logists
+control "Открыть вкладку\nВодители" as ot_drivers
+control "Открыть вкладку\nБухгалтеры" as ot_accounters
+
+boundary "Окно подтверждения" as w_ask
+control "Отобразить\nокно подтверждения" as dw_ask
+
+control "Проверка связей\nпользователя" as check_links
+control "Удаление пользователя" as del_user
+control "Отобразить ошику\nсвязности" as err_links #red
+
+' =============================================================================
+
+accounter -- w_home
+accounter -- w_ask
+
+w_home --> ot_logists
+w_home --> ot_drivers
+w_home --> ot_accounters
+
+w_home --> dw_ask : "Нажата кнопка\nУдалить\nпользователя"
+dw_ask --> w_ask
+w_ask --> check_links : "Нажата кнопка\nПодтвердить"
+w_ask --> dw_home : "Нажата кнопка\nОтмена"
+check_links -->del_user : "Пользователь не\nсвязан с записями"
+check_links --> err_links : "Пользователь\nсвязан с записями"
+del_user --> dw_home
+dw_home --> w_home
+
+check_links --> db
+del_user --> db
+
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+
+actor "Логист" as logist
+
+boundary "Домашнее окно\nлогиста" as w_home
+
+boundary "Окно добавления\nперевозки" as w_addtran
+
+database "База данных" as db 
+
+logist -> w_home : Перейти на вкладку\nПеревозки
+w_home -> w_home : Открыть вкладку\nПеревозки
+
+logist -> w_home : Нажать кнопку\nДобавить
+w_home -> w_addtran ** : Отобразить
+w_addtran -> db : Запрос списков\nводителей и\nмаршрутов
+w_addtran <-- db : Списки
+alt#Gold #LightBlue Назначить перевозку
+    logist -> w_addtran : Ввести данные о перевозке
+    logist -> w_addtran : Нажать кнопку Подтвердить
+    w_addtran -> db : Добавить\nперевозку
+    w_addtran <-- db : Перевозка\nдобавлена
+    w_addtran -> w_addtran !! : Завершить
+else #Pink Отказ от назначения перевозки
+    logist -> w_addtran !! : Нажать кнопку Отмена
+end
+
+@enduml

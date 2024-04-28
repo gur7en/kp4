@@ -1,0 +1,38 @@
+@startuml
+
+actor "Логист" as logist
+
+entity "База данных" as db 
+
+boundary "Домашнее окно\nлогиста" as w_home
+control "Отобразить\nдомашнее окно" as dw_home
+control "Открыть вкладку\nПеревозки" as ot_transp
+
+boundary "Окно добавления\nперевозки" as w_addtran
+control "Отобразить окно\nдобавления перевозки" as dw_addtran
+control "Запрос списков\nводителей и маршрутов" as get_drv_transp
+control "Обновление списков\nводителей и маршрутов" as upd_drv_transp
+control "Добавить перевозку" as add_tran
+
+' =============================================================================
+
+logist -- w_home
+logist -- w_addtran
+
+w_home --> ot_transp
+dw_home --> w_home
+
+w_home --> dw_addtran : "Нажата кнопка\nДобавить"
+dw_addtran --> w_addtran
+
+w_addtran --> get_drv_transp : "При открытии\nокна"
+get_drv_transp --> upd_drv_transp
+upd_drv_transp --> w_addtran
+w_addtran --> add_tran : "Нажата кнопка\nПодтвердить"
+w_addtran --> dw_home : "Нажата кнопка\nОтмена"
+add_tran --> dw_home : "Окно\nзакрыто"
+
+add_tran --> db
+get_drv_transp --> db
+
+@enduml
