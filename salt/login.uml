@@ -1,0 +1,15 @@
+@startsalt
+
+scale 2
+
+{+
+
+{
+    Логин  | "Username "
+    Пароль | "****     "
+}
+[ Вход ]
+
+}
+
+@endsalt
