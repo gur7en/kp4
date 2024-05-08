@@ -21,11 +21,6 @@
 #include <QtWidgets/QTableView>
 #include <QtWidgets/QWidget>
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
 {
@@ -35,16 +30,18 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private:
-    // Ui::MainWindow *ui;
+public slots:
+    void resetTabs();
+    void openLoginTab();
+    void openProfileTab();
+    void openTabsForLogist();
+    void openTabsForDriver();
+    void openTabsForAccounter();
 
+private:
     QWidget *central;
     QHBoxLayout *layout;
     QTabWidget *tabWidget;
-
-    void removeTab_Current();
-    void removeTab_All();
-
 };
 
 
@@ -55,10 +52,18 @@ class LoginTab : public QWidget
 public:
     LoginTab(QTabWidget *tabWidget);
 
+signals:
+    void userLoginAsLogist();
+    void userLoginAsDriver();
+    void userLoginAsAccounter();
+
 private:
     QLineEdit *loginEdit;
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
+
+private slots:
+    void loginPressed();
 };
 
 
@@ -68,6 +73,9 @@ class ProfileTab : public QWidget
 
 public:
     ProfileTab(QTabWidget *tabWidget);
+
+signals:
+    void userLogout();
 
 private:
     QLabel *userLabel;
@@ -79,6 +87,9 @@ private:
     QLineEdit *newPasswordEdit;
     QLineEdit *repeatPasswordEdit;
     QPushButton *changePasswordButton;
+
+private slots:
+    void logoutPressed();
 };
 
 

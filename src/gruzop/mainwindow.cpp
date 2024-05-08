@@ -3,25 +3,13 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , tabWidget(NULL)
 {
     central = new QWidget(this);
     setCentralWidget(central);
     layout = new QHBoxLayout(central);
-    tabWidget = new QTabWidget;
-    layout->addWidget(tabWidget);
-    resize(512, 300);
-
-    new LoginTab(tabWidget);
-    new ProfileTab(tabWidget);
-    new DriversTab(tabWidget);
-    new LogistsTab(tabWidget);
-    new AccountersTab(tabWidget);
-    new RoutesTab(tabWidget);
-    new TransportationsTab(tabWidget);
-    new DriverDetailsTab(tabWidget);
-    new AddRouteTab(tabWidget);
-    new EditRouteTab(tabWidget);
-    new AddTransportationTab(tabWidget);
+    resize(640, 480);
+    resetTabs();
 }
 
 MainWindow::~MainWindow()
@@ -29,13 +17,58 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::removeTab_All()
+void MainWindow::resetTabs()
 {
     if(tabWidget) {
         delete tabWidget;
     }
     tabWidget = new QTabWidget;
     layout->addWidget(tabWidget);
+    openLoginTab();
+}
+
+
+void MainWindow::openLoginTab()
+{
+    LoginTab *tab = new LoginTab(tabWidget);
+    connect(tab, &LoginTab::userLoginAsLogist,
+            this, &MainWindow::openTabsForLogist);
+    connect(tab, &LoginTab::userLoginAsDriver,
+            this, &MainWindow::openTabsForDriver);
+    connect(tab, &LoginTab::userLoginAsAccounter,
+            this, &MainWindow::openTabsForAccounter);
+}
+
+
+void MainWindow::openProfileTab()
+{
+    ProfileTab *tab = new ProfileTab(tabWidget);
+    connect(tab, &ProfileTab::userLogout,
+            this, &MainWindow::resetTabs);
+}
+
+
+void MainWindow::openTabsForLogist()
+{
+    openProfileTab();
+    new RoutesTab(tabWidget);
+    new TransportationsTab(tabWidget);
+}
+
+
+void MainWindow::openTabsForDriver()
+{
+    openProfileTab();
+    new DriverDetailsTab(tabWidget);
+}
+
+
+void MainWindow::openTabsForAccounter()
+{
+    openProfileTab();
+    new DriversTab(tabWidget);
+    new LogistsTab(tabWidget);
+    new AccountersTab(tabWidget);
 }
 
 //==============================================================================
@@ -45,7 +78,8 @@ LoginTab::LoginTab(QTabWidget *tabWidget)
     tabWidget->addTab(this, "Вход в программу");
     QFormLayout *tabLayout = new QFormLayout(this);
 
-    QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    QSpacerItem *verticalSpacer_1 = new QSpacerItem
+        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_1);
 
     loginEdit = new QLineEdit("");
@@ -57,9 +91,29 @@ LoginTab::LoginTab(QTabWidget *tabWidget)
 
     loginButton = new QPushButton("Вход");
     tabLayout->addRow(loginButton);
+    connect(loginButton, &QPushButton::clicked,
+            this, &LoginTab::loginPressed);
 
-    QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    QSpacerItem *verticalSpacer_2 = new QSpacerItem
+        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
+}
+
+
+void LoginTab::loginPressed()
+{
+    QString username = loginEdit->text();
+    if(username == "l") {
+        emit userLoginAsLogist();
+        deleteLater();
+    } else if(username == "a") {
+        emit userLoginAsAccounter();
+        deleteLater();
+    } else if(username == "d") {
+        emit userLoginAsDriver();
+        deleteLater();
+    } else {
+    }
 }
 
 //==============================================================================
@@ -85,6 +139,8 @@ ProfileTab::ProfileTab(QTabWidget *tabWidget)
 
     logoutButton = new QPushButton("Выйти из системы");
     tabLayout->addRow(logoutButton);
+    connect(logoutButton, &QPushButton::clicked,
+            this, &ProfileTab::logoutPressed);
 
     QFrame *line_1 = new QFrame;
     line_1->setFrameShape(QFrame::HLine);
@@ -110,6 +166,12 @@ ProfileTab::ProfileTab(QTabWidget *tabWidget)
 
     QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
+}
+
+
+void ProfileTab::logoutPressed()
+{
+    emit userLogout();
 }
 
 //==============================================================================
