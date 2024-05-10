@@ -17,7 +17,7 @@ entity "Users" as users {
 }
 
 entity "Drivers expirience" as drv_exp {
-    *driver_id : ID <<FK>>
+    *driver : ID <<FK>>
     --
     experience : int
 }
@@ -42,13 +42,12 @@ entity "Transportations" as transps {
     route : ID <<FK>>
     start_time : time
     end_time : time
-    drivers : ID <<FK>>
 }
 
 entity "Drivers for transportation" as drv_transp {
-    *id : ID <<generated>>
+    *transp : ID <<FK>>
     --
-    driver_id : ID <<FK>>
+    driver : ID <<FK>>
     driver_bonus : money
 }
 

@@ -17,6 +17,12 @@ MainWindow::~MainWindow()
 }
 
 
+void MainWindow::addTab(QWidget *tab, const QString &tabname)
+{
+    tabWidget->addTab(tab, tabname);
+}
+
+
 void MainWindow::resetTabs()
 {
     if(tabWidget) {
@@ -30,7 +36,8 @@ void MainWindow::resetTabs()
 
 void MainWindow::openLoginTab()
 {
-    LoginTab *tab = new LoginTab(tabWidget);
+    LoginTab *tab = new LoginTab;
+    addTab(tab, "Вход в программу");
     connect(tab, &LoginTab::userLoginAsLogist,
             this, &MainWindow::openTabsForLogist);
     connect(tab, &LoginTab::userLoginAsDriver,
@@ -40,42 +47,92 @@ void MainWindow::openLoginTab()
 }
 
 
-void MainWindow::openProfileTab()
+void MainWindow::openProfileTab(const QString &username, const QString &role)
 {
-    ProfileTab *tab = new ProfileTab(tabWidget);
+    ProfileTab *tab = new ProfileTab(username, role);
+    addTab(tab, "Профиль");
     connect(tab, &ProfileTab::userLogout,
             this, &MainWindow::resetTabs);
 }
 
 
-void MainWindow::openTabsForLogist()
+void MainWindow::openTabsForLogist(const QString &username)
 {
-    openProfileTab();
-    new RoutesTab(tabWidget);
-    new TransportationsTab(tabWidget);
+    openProfileTab(username, "Логист");
+
+    TransportationsTab *transp = new TransportationsTab;
+    addTab(transp, "Перевозки");
+    connect(transp, &TransportationsTab::requestAddTransportation,
+            this, &MainWindow::openAddTransportationTab);
+
+    RoutesTab *routes = new RoutesTab;
+    addTab(routes, "Маршруты");
+    connect(routes, &RoutesTab::requestAddRoute,
+            this, &MainWindow::openAddRouteTab);
+    connect(routes, &RoutesTab::requestEditRoute,
+            this, &MainWindow::openEditRouteTab);
 }
 
 
-void MainWindow::openTabsForDriver()
+void MainWindow::openTabsForDriver(const QString &username)
 {
-    openProfileTab();
-    new DriverDetailsTab(tabWidget);
+    openProfileTab(username, "Водитель");
+    addTab(new DriverDetailTab, "Перевозки");
 }
 
 
-void MainWindow::openTabsForAccounter()
+void MainWindow::openTabsForAccounter(const QString &username)
 {
-    openProfileTab();
-    new DriversTab(tabWidget);
-    new LogistsTab(tabWidget);
-    new AccountersTab(tabWidget);
+    openProfileTab(username, "Бухгалтер");
+
+    DriversTab *drivers = new DriversTab;
+    connect(drivers, &DriversTab::requestDriverDetail,
+            this, &MainWindow::openDriverDetailTab);
+
+    LogistsTab *logists = new LogistsTab;
+    AccountersTab *accounters = new AccountersTab;
+
+    addTab(drivers, "Водители");
+    addTab(logists, "Логисты");
+    addTab(accounters, "Бухгалтеры");
+}
+
+
+void MainWindow::openDriverDetailTab(const QString &username)
+{
+    DriverDetailTab *tab = new DriverDetailTab;
+    addTab(tab, username);
+    tabWidget->setCurrentWidget(tab);
+}
+
+
+void MainWindow::openAddRouteTab()
+{
+    AddRouteTab *tab = new AddRouteTab;
+    addTab(tab, "Добавление маршрута");
+    tabWidget->setCurrentWidget(tab);
+}
+
+
+void MainWindow::openEditRouteTab()
+{
+    EditRouteTab *tab = new EditRouteTab;
+    addTab(tab, "Редактирование маршрута");
+    tabWidget->setCurrentWidget(tab);
+}
+
+
+void MainWindow::openAddTransportationTab()
+{
+    AddTransportationTab *tab = new AddTransportationTab;
+    addTab(tab, "Добавление перевозки");
+    tabWidget->setCurrentWidget(tab);
 }
 
 //==============================================================================
 
-LoginTab::LoginTab(QTabWidget *tabWidget)
+LoginTab::LoginTab()
 {
-    tabWidget->addTab(this, "Вход в программу");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem
@@ -104,38 +161,51 @@ void LoginTab::loginPressed()
 {
     QString username = loginEdit->text();
     if(username == "l") {
-        emit userLoginAsLogist();
+        emit userLoginAsLogist(username);
         deleteLater();
     } else if(username == "a") {
-        emit userLoginAsAccounter();
+        emit userLoginAsAccounter(username);
         deleteLater();
     } else if(username == "d") {
-        emit userLoginAsDriver();
+        emit userLoginAsDriver(username);
         deleteLater();
     } else {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Введён неверный логин или пароль!");
+        msgBox.setInformativeText(
+            "Проверьте правильность ввода имени пользователя и пароля.\n"
+            "Если вы уверены в правильности учётных данных, "
+            "но не можете войти в систему, свяжитесь с администратором системы."
+            );
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.exec();
     }
 }
 
 //==============================================================================
 
-ProfileTab::ProfileTab(QTabWidget *tabWidget)
+ProfileTab::ProfileTab(const QString &username, const QString &role)
 {
-    tabWidget->addTab(this, "Профиль");
     QFormLayout *tabLayout = new QFormLayout(this);
 
-    QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    QSpacerItem *verticalSpacer_1 = new QSpacerItem
+        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_1);
 
-    userLabel = new QLabel("Пользователь");
+    QLabel *userLabel = new QLabel("Пользователь");
     tabLayout->addRow(userLabel);
 
     userEditRO = new QLineEdit;
     userEditRO->setReadOnly(true);
     tabLayout->addRow(userEditRO);
+    userEditRO->setText(username);
 
     userRoleEditRO = new QLineEdit;
     userRoleEditRO->setReadOnly(true);
     tabLayout->addRow("Роль", userRoleEditRO);
+    userRoleEditRO->setText(role);
 
     logoutButton = new QPushButton("Выйти из системы");
     tabLayout->addRow(logoutButton);
@@ -146,7 +216,7 @@ ProfileTab::ProfileTab(QTabWidget *tabWidget)
     line_1->setFrameShape(QFrame::HLine);
     tabLayout->addRow(line_1);
 
-    changePasswordLabel = new QLabel("Сменить пароль");
+    QLabel *changePasswordLabel = new QLabel("Сменить пароль");
     tabLayout->addRow(changePasswordLabel);
 
     oldPasswordEdit = new QLineEdit;
@@ -164,7 +234,8 @@ ProfileTab::ProfileTab(QTabWidget *tabWidget)
     changePasswordButton = new QPushButton("Сменить пароль");
     tabLayout->addRow(changePasswordButton);
 
-    QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    QSpacerItem *verticalSpacer_2 = new QSpacerItem
+        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
 }
 
@@ -176,70 +247,126 @@ void ProfileTab::logoutPressed()
 
 //==============================================================================
 
-DriversTab::DriversTab(QTabWidget *tabWidget)
+DriversTab::DriversTab()
 {
-    tabWidget->addTab(this, "Водители");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
     tabLayout->addWidget(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(table, &QTableView::customContextMenuRequested,
+            this, &DriversTab::showTableContextMenu);
+}
+
+
+void DriversTab::showTableContextMenu(QPoint pos)
+{
+    QMenu menu;
+    QAction *showTransp = new QAction("Просмотреть перевозки", this);
+    menu.addAction(showTransp);
+
+    QPoint formPos = mapToGlobal(pos);
+    QAction *sel = menu.exec(formPos);
+    if(sel == showTransp) {
+        emit requestDriverDetail("example_driver");
+    }
 }
 
 //==============================================================================
 
-LogistsTab::LogistsTab(QTabWidget *tabWidget)
+LogistsTab::LogistsTab()
 {
-    tabWidget->addTab(this, "Логисты");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
     tabLayout->addWidget(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 //==============================================================================
 
-AccountersTab::AccountersTab(QTabWidget *tabWidget)
+AccountersTab::AccountersTab()
 {
-    tabWidget->addTab(this, "Бухгалтеры");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
     tabLayout->addWidget(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 //==============================================================================
 
-RoutesTab::RoutesTab(QTabWidget *tabWidget)
+RoutesTab::RoutesTab()
 {
-    tabWidget->addTab(this, "Маршруты");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
     tabLayout->addWidget(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(table, &QTableView::customContextMenuRequested,
+            this, &RoutesTab::showTableContextMenu);
+}
+
+
+void RoutesTab::showTableContextMenu(QPoint pos)
+{
+    QMenu menu;
+    QAction *addRoute = new QAction("Добавить маршрут", this);
+    menu.addAction(addRoute);
+    QAction *editRoute = new QAction("Изменить маршрут", this);
+    menu.addAction(editRoute);
+
+    QPoint formPos = mapToGlobal(pos);
+    QAction *sel = menu.exec(formPos);
+    if(sel == addRoute) {
+        emit requestAddRoute();
+    } else if(sel == editRoute) {
+        emit requestEditRoute();
+    }
 }
 
 //==============================================================================
 
-TransportationsTab::TransportationsTab(QTabWidget *tabWidget)
+TransportationsTab::TransportationsTab()
 {
-    tabWidget->addTab(this, "Перевозки");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
     tabLayout->addWidget(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(table, &QTableView::customContextMenuRequested,
+            this, &TransportationsTab::showTableContextMenu);
+}
+
+
+void TransportationsTab::showTableContextMenu(QPoint pos)
+{
+    QMenu menu;
+    QAction *addTransp = new QAction("Добавить перевозку", this);
+    menu.addAction(addTransp);
+
+    QPoint formPos = mapToGlobal(pos);
+    QAction *sel = menu.exec(formPos);
+    if(sel == addTransp) {
+        emit requestAddTransportation();
+    }
 }
 
 //==============================================================================
 
-DriverDetailsTab::DriverDetailsTab(QTabWidget *tabWidget)
+DriverDetailTab::DriverDetailTab()
 {
-    tabWidget->addTab(this, "Перевозки");
     QFormLayout *tabLayout = new QFormLayout(this);
 
+    /*
     selectPeriodCombo = new QComboBox;
     tabLayout->addRow("Выберите период", selectPeriodCombo);
 
     QLabel *setPeriodLabel = new QLabel("Либо задайте его вручную");
+    tabLayout->addRow(setPeriodLabel);
+    */
+
+    QLabel *setPeriodLabel = new QLabel("Задайте период");
     tabLayout->addRow(setPeriodLabel);
 
     fromDate = new QDateEdit;
@@ -261,6 +388,7 @@ DriverDetailsTab::DriverDetailsTab(QTabWidget *tabWidget)
 
     table = new QTableView;
     tabLayout->addRow(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
 
     salaryForPeriodRO = new QLineEdit;
     salaryForPeriodRO->setReadOnly(true);
@@ -273,9 +401,8 @@ DriverDetailsTab::DriverDetailsTab(QTabWidget *tabWidget)
 
 //==============================================================================
 
-AddRouteTab::AddRouteTab(QTabWidget *tabWidget)
+AddRouteTab::AddRouteTab()
 {
-    tabWidget->addTab(this, "Добавление маршрута");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -319,9 +446,8 @@ void AddRouteTab::close()
 
 //==============================================================================
 
-EditRouteTab::EditRouteTab(QTabWidget *tabWidget)
+EditRouteTab::EditRouteTab()
 {
-    tabWidget->addTab(this, "Редактирование маршрута");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -365,9 +491,8 @@ void EditRouteTab::close()
 
 //==============================================================================
 
-AddTransportationTab::AddTransportationTab(QTabWidget *tabWidget)
+AddTransportationTab::AddTransportationTab()
 {
-    tabWidget->addTab(this, "Добавление перевозки");
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);

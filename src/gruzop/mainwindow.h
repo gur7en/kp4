@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QMessageBox>
+#include <QMenu>
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
@@ -31,17 +33,23 @@ public:
     ~MainWindow();
 
 public slots:
-    void resetTabs();
     void openLoginTab();
-    void openProfileTab();
-    void openTabsForLogist();
-    void openTabsForDriver();
-    void openTabsForAccounter();
+    void openProfileTab(const QString &username, const QString &role);
+    void openTabsForLogist(const QString &username);
+    void openTabsForDriver(const QString &username);
+    void openTabsForAccounter(const QString &username);
+    void openDriverDetailTab(const QString &username);
+    void openAddRouteTab();
+    void openEditRouteTab();
+    void openAddTransportationTab();
 
 private:
     QWidget *central;
     QHBoxLayout *layout;
     QTabWidget *tabWidget;
+
+    void addTab(QWidget *tab, const QString &tabname);
+    void resetTabs();
 };
 
 
@@ -50,12 +58,12 @@ class LoginTab : public QWidget
     Q_OBJECT
 
 public:
-    LoginTab(QTabWidget *tabWidget);
+    LoginTab();
 
 signals:
-    void userLoginAsLogist();
-    void userLoginAsDriver();
-    void userLoginAsAccounter();
+    void userLoginAsLogist(const QString &username);
+    void userLoginAsDriver(const QString &username);
+    void userLoginAsAccounter(const QString &username);
 
 private:
     QLineEdit *loginEdit;
@@ -72,17 +80,15 @@ class ProfileTab : public QWidget
     Q_OBJECT
 
 public:
-    ProfileTab(QTabWidget *tabWidget);
+    ProfileTab(const QString &username, const QString &role);
 
 signals:
     void userLogout();
 
 private:
-    QLabel *userLabel;
     QLineEdit *userEditRO;
     QLineEdit *userRoleEditRO;
     QPushButton *logoutButton;
-    QLabel *changePasswordLabel;
     QLineEdit *oldPasswordEdit;
     QLineEdit *newPasswordEdit;
     QLineEdit *repeatPasswordEdit;
@@ -98,7 +104,13 @@ class DriversTab : public QWidget
     Q_OBJECT
 
 public:
-    DriversTab(QTabWidget *tabWidget);
+    DriversTab();
+
+public slots:
+    void showTableContextMenu(QPoint pos);
+
+signals:
+    void requestDriverDetail(const QString &username);
 
 private:
     QTableView *table;
@@ -110,7 +122,7 @@ class LogistsTab : public QWidget
     Q_OBJECT
 
 public:
-    LogistsTab(QTabWidget *tabWidget);
+    LogistsTab();
 
 private:
     QTableView *table;
@@ -122,7 +134,7 @@ class AccountersTab : public QWidget
     Q_OBJECT
 
 public:
-    AccountersTab(QTabWidget *tabWidget);
+    AccountersTab();
 
 private:
     QTableView *table;
@@ -134,7 +146,14 @@ class RoutesTab : public QWidget
     Q_OBJECT
 
 public:
-    RoutesTab(QTabWidget *tabWidget);
+    RoutesTab();
+
+public slots:
+    void showTableContextMenu(QPoint pos);
+
+signals:
+    void requestAddRoute();
+    void requestEditRoute();
 
 private:
     QTableView *table;
@@ -146,19 +165,26 @@ class TransportationsTab : public QWidget
     Q_OBJECT
 
 public:
-    TransportationsTab(QTabWidget *tabWidget);
+    TransportationsTab();
+
+public slots:
+    void showTableContextMenu(QPoint pos);
+
+signals:
+    void requestAddTransportation();
+    void requestEditTransportation();
 
 private:
     QTableView *table;
 };
 
 
-class DriverDetailsTab : public QWidget
+class DriverDetailTab : public QWidget
 {
     Q_OBJECT
 
 public:
-    DriverDetailsTab(QTabWidget *tabWidget);
+    DriverDetailTab();
 
 private:
     QComboBox *selectPeriodCombo;
@@ -176,7 +202,7 @@ class AddRouteTab : public QWidget
     Q_OBJECT
 
 public:
-    AddRouteTab(QTabWidget *tabWidget);
+    AddRouteTab();
 
 public slots:
     void close();
@@ -198,13 +224,12 @@ class EditRouteTab : public QWidget
     Q_OBJECT
 
 public:
-    EditRouteTab(QTabWidget *tabWidget);
+    EditRouteTab();
 
 public slots:
     void close();
 
 private:
-    QFormLayout *layout;
     QLineEdit *routeNameEdit;
     QLineEdit *fromEdit;
     QLineEdit *toEdit;
@@ -221,7 +246,7 @@ class AddTransportationTab : public QWidget
     Q_OBJECT
 
 public:
-    AddTransportationTab(QTabWidget *tabWidget);
+    AddTransportationTab();
 
 public slots:
     void close();
