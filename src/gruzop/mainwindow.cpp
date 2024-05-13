@@ -1,9 +1,9 @@
 #include "mainwindow.h"
-// #include "ui_mainwindow.h"
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QWidget *parent, DataBase *db)
     : QMainWindow(parent)
     , tabWidget(NULL)
+    , db(db)
 {
     central = new QWidget(this);
     setCentralWidget(central);
@@ -28,6 +28,7 @@ void MainWindow::resetTabs()
     if(tabWidget) {
         delete tabWidget;
     }
+    db->logout();
     tabWidget = new QTabWidget;
     layout->addWidget(tabWidget);
     openLoginTab();
@@ -36,7 +37,7 @@ void MainWindow::resetTabs()
 
 void MainWindow::openLoginTab()
 {
-    LoginTab *tab = new LoginTab;
+    LoginTab *tab = new LoginTab(db);
     addTab(tab, "Вход в программу");
     connect(tab, &LoginTab::userLoginAsLogist,
             this, &MainWindow::openTabsForLogist);
@@ -47,25 +48,25 @@ void MainWindow::openLoginTab()
 }
 
 
-void MainWindow::openProfileTab(const QString &username, const QString &role)
+void MainWindow::openProfileTab()
 {
-    ProfileTab *tab = new ProfileTab(username, role);
+    ProfileTab *tab = new ProfileTab(db);
     addTab(tab, "Профиль");
     connect(tab, &ProfileTab::userLogout,
             this, &MainWindow::resetTabs);
 }
 
 
-void MainWindow::openTabsForLogist(const QString &username)
+void MainWindow::openTabsForLogist()
 {
-    openProfileTab(username, "Логист");
+    openProfileTab();
 
-    TransportationsTab *transp = new TransportationsTab;
+    TransportationsTab *transp = new TransportationsTab(db);
     addTab(transp, "Перевозки");
     connect(transp, &TransportationsTab::requestAddTransportation,
             this, &MainWindow::openAddTransportationTab);
 
-    RoutesTab *routes = new RoutesTab;
+    RoutesTab *routes = new RoutesTab(db);
     addTab(routes, "Маршруты");
     connect(routes, &RoutesTab::requestAddRoute,
             this, &MainWindow::openAddRouteTab);
@@ -74,23 +75,27 @@ void MainWindow::openTabsForLogist(const QString &username)
 }
 
 
-void MainWindow::openTabsForDriver(const QString &username)
+void MainWindow::openTabsForDriver()
 {
-    openProfileTab(username, "Водитель");
-    addTab(new DriverDetailTab, "Перевозки");
+    openProfileTab();
+    addTab(new DriverDetailTab(db), "Перевозки");
 }
 
 
-void MainWindow::openTabsForAccounter(const QString &username)
+void MainWindow::openTabsForAccounter()
 {
-    openProfileTab(username, "Бухгалтер");
+    openProfileTab();
 
-    DriversTab *drivers = new DriversTab;
+    DriversTab *drivers = new DriversTab(db);
+    drivers->resetQueryModel();
     connect(drivers, &DriversTab::requestDriverDetail,
             this, &MainWindow::openDriverDetailTab);
 
-    LogistsTab *logists = new LogistsTab;
-    AccountersTab *accounters = new AccountersTab;
+    LogistsTab *logists = new LogistsTab(db);
+    logists->resetQueryModel();
+
+    AccountersTab *accounters = new AccountersTab(db);
+    accounters->resetQueryModel();
 
     addTab(drivers, "Водители");
     addTab(logists, "Логисты");
@@ -98,17 +103,17 @@ void MainWindow::openTabsForAccounter(const QString &username)
 }
 
 
-void MainWindow::openDriverDetailTab(const QString &username)
+void MainWindow::openDriverDetailTab()
 {
-    DriverDetailTab *tab = new DriverDetailTab;
-    addTab(tab, username);
+    DriverDetailTab *tab = new DriverDetailTab(db);
+    addTab(tab, db->getUserShortName());
     tabWidget->setCurrentWidget(tab);
 }
 
 
 void MainWindow::openAddRouteTab()
 {
-    AddRouteTab *tab = new AddRouteTab;
+    AddRouteTab *tab = new AddRouteTab(db);
     addTab(tab, "Добавление маршрута");
     tabWidget->setCurrentWidget(tab);
 }
@@ -116,7 +121,7 @@ void MainWindow::openAddRouteTab()
 
 void MainWindow::openEditRouteTab()
 {
-    EditRouteTab *tab = new EditRouteTab;
+    EditRouteTab *tab = new EditRouteTab(db);
     addTab(tab, "Редактирование маршрута");
     tabWidget->setCurrentWidget(tab);
 }
@@ -124,15 +129,68 @@ void MainWindow::openEditRouteTab()
 
 void MainWindow::openAddTransportationTab()
 {
-    AddTransportationTab *tab = new AddTransportationTab;
+    AddTransportationTab *tab = new AddTransportationTab(db);
     addTab(tab, "Добавление перевозки");
     tabWidget->setCurrentWidget(tab);
 }
 
 //==============================================================================
 
-LoginTab::LoginTab()
+UserListTab::UserListTab(DataBase *db)
 {
+    this->db = db;
+
+    QFormLayout *tabLayout = new QFormLayout(this);
+
+    tableModel = new QSqlQueryModel;
+
+    table = new QTableView;
+    tabLayout->addWidget(table);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setModel(tableModel);
+    connect(table, &QTableView::customContextMenuRequested,
+            this, &UserListTab::showTableContextMenu);
+
+    tableContextMenu = new QMenu;
+    updateTableAction = new QAction("Обновить", this);
+    tableContextMenu->addAction(updateTableAction);
+
+    connect(this, &UserListTab::requestUpdateTable,
+            this, &UserListTab::resetQueryModel);
+}
+
+
+void UserListTab::showTableContextMenu(QPoint position)
+{
+    QPoint formPos = mapToGlobal(position);
+    QAction *selectedAction = tableContextMenu->exec(formPos);
+    actionTableContextMenu(selectedAction);
+}
+
+
+bool UserListTab::actionTableContextMenu(QAction *selected)
+{
+    if(selected == updateTableAction) {
+        emit requestUpdateTable();
+    } else {
+        return false;
+    }
+    return true;
+}
+
+
+void UserListTab::resetQueryModel()
+{
+}
+
+//==============================================================================
+
+LoginTab::LoginTab(DataBase *db)
+{
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem
@@ -160,16 +218,9 @@ LoginTab::LoginTab()
 void LoginTab::loginPressed()
 {
     QString username = loginEdit->text();
-    if(username == "l") {
-        emit userLoginAsLogist(username);
-        deleteLater();
-    } else if(username == "a") {
-        emit userLoginAsAccounter(username);
-        deleteLater();
-    } else if(username == "d") {
-        emit userLoginAsDriver(username);
-        deleteLater();
-    } else {
+    QString password = passwordEdit->text();
+    bool success_login = db->login(username, password);
+    if(!success_login) {
         QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Введён неверный логин или пароль!");
@@ -181,13 +232,32 @@ void LoginTab::loginPressed()
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setDefaultButton(QMessageBox::Ok);
         msgBox.exec();
+        return;
     }
+
+    switch(db->getUserRole()) {
+    case UserRole::Driver:
+        emit userLoginAsDriver();
+        break;
+    case UserRole::Logist:
+        emit userLoginAsLogist();
+        break;
+    case UserRole::Accounter:
+        emit userLoginAsAccounter();
+        break;
+    default:
+        return;
+    }
+
+    deleteLater();
 }
 
 //==============================================================================
 
-ProfileTab::ProfileTab(const QString &username, const QString &role)
+ProfileTab::ProfileTab(DataBase *db)
 {
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem
@@ -200,12 +270,12 @@ ProfileTab::ProfileTab(const QString &username, const QString &role)
     userEditRO = new QLineEdit;
     userEditRO->setReadOnly(true);
     tabLayout->addRow(userEditRO);
-    userEditRO->setText(username);
+    userEditRO->setText(db->getUserFullName());
 
     userRoleEditRO = new QLineEdit;
     userRoleEditRO->setReadOnly(true);
     tabLayout->addRow("Роль", userRoleEditRO);
-    userRoleEditRO->setText(role);
+    // userRoleEditRO->setText(db->getUserRole());
 
     logoutButton = new QPushButton("Выйти из системы");
     tabLayout->addRow(logoutButton);
@@ -247,88 +317,116 @@ void ProfileTab::logoutPressed()
 
 //==============================================================================
 
-DriversTab::DriversTab()
+DriversTab::DriversTab(DataBase *db)
+    : UserListTab(db)
 {
-    QFormLayout *tabLayout = new QFormLayout(this);
-
-    table = new QTableView;
-    tabLayout->addWidget(table);
-    table->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(table, &QTableView::customContextMenuRequested,
-            this, &DriversTab::showTableContextMenu);
+    showTranspMenuAction = new QAction("Просмотреть перевозки", this);
+    tableContextMenu->addAction(showTranspMenuAction);
 }
 
 
 void DriversTab::showTableContextMenu(QPoint pos)
 {
-    QMenu menu;
-    QAction *showTransp = new QAction("Просмотреть перевозки", this);
-    menu.addAction(showTransp);
-
     QPoint formPos = mapToGlobal(pos);
-    QAction *sel = menu.exec(formPos);
-    if(sel == showTransp) {
-        emit requestDriverDetail("example_driver");
+    QAction *selectedAction = tableContextMenu->exec(formPos);
+    bool actionPerformed = actionTableContextMenu(selectedAction);
+    if(!actionPerformed) {
+        UserListTab::actionTableContextMenu(selectedAction);
     }
 }
 
-//==============================================================================
 
-LogistsTab::LogistsTab()
+bool DriversTab::actionTableContextMenu(QAction *selected)
 {
-    QFormLayout *tabLayout = new QFormLayout(this);
+    if(selected == showTranspMenuAction) {
+        emit requestDriverDetail("example_driver");
+    } else {
+        return false;
+    }
+    return true;
+}
 
-    table = new QTableView;
-    tabLayout->addWidget(table);
-    table->setContextMenuPolicy(Qt::CustomContextMenu);
+
+void DriversTab::resetQueryModel()
+{
+    tableModel->setQuery("SELECT * FROM users WHERE role='driver';");
 }
 
 //==============================================================================
 
-AccountersTab::AccountersTab()
+LogistsTab::LogistsTab(DataBase *db)
+    : UserListTab(db)
 {
-    QFormLayout *tabLayout = new QFormLayout(this);
+}
 
-    table = new QTableView;
-    tabLayout->addWidget(table);
-    table->setContextMenuPolicy(Qt::CustomContextMenu);
+
+void LogistsTab::resetQueryModel()
+{
+    tableModel->setQuery("SELECT * FROM users WHERE role='logist';");
 }
 
 //==============================================================================
 
-RoutesTab::RoutesTab()
+AccountersTab::AccountersTab(DataBase *db)
+    : UserListTab(db)
 {
+}
+
+
+void AccountersTab::resetQueryModel()
+{
+    tableModel->setQuery("SELECT * FROM users WHERE role='accounter';");
+}
+
+//==============================================================================
+
+RoutesTab::RoutesTab(DataBase *db)
+{
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
+    /*
+     * TODO
+    table->setModel();
+    table->show();
+    */
     tabLayout->addWidget(table);
     table->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(table, &QTableView::customContextMenuRequested,
             this, &RoutesTab::showTableContextMenu);
+
+    tableSelectionModel = table->selectionModel();
+
+    tableContextMenu = new QMenu;
+    addRouteMenuAction = new QAction("Добавить маршрут", this);
+    editRouteMenuAction = new QAction("Изменить маршрут", this);
 }
 
 
 void RoutesTab::showTableContextMenu(QPoint pos)
 {
-    QMenu menu;
-    QAction *addRoute = new QAction("Добавить маршрут", this);
-    menu.addAction(addRoute);
-    QAction *editRoute = new QAction("Изменить маршрут", this);
-    menu.addAction(editRoute);
+    tableContextMenu->addAction(addRouteMenuAction);
+    if(tableSelectionModel->hasSelection()) {
+        tableContextMenu->addAction(editRouteMenuAction);
+    }
 
     QPoint formPos = mapToGlobal(pos);
-    QAction *sel = menu.exec(formPos);
-    if(sel == addRoute) {
+    QAction *selectedAction = tableContextMenu->exec(formPos);
+    if(selectedAction == addRouteMenuAction) {
         emit requestAddRoute();
-    } else if(sel == editRoute) {
+    } else if(selectedAction == editRouteMenuAction) {
         emit requestEditRoute();
     }
 }
 
 //==============================================================================
 
-TransportationsTab::TransportationsTab()
+TransportationsTab::TransportationsTab(DataBase *db)
 {
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     table = new QTableView;
@@ -336,26 +434,29 @@ TransportationsTab::TransportationsTab()
     table->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(table, &QTableView::customContextMenuRequested,
             this, &TransportationsTab::showTableContextMenu);
+
+    tableContextMenu = new QMenu;
+    addTranspMenuAction = new QAction("Добавить перевозку", this);
 }
 
 
 void TransportationsTab::showTableContextMenu(QPoint pos)
 {
-    QMenu menu;
-    QAction *addTransp = new QAction("Добавить перевозку", this);
-    menu.addAction(addTransp);
+    tableContextMenu->addAction(addTranspMenuAction);
 
     QPoint formPos = mapToGlobal(pos);
-    QAction *sel = menu.exec(formPos);
-    if(sel == addTransp) {
+    QAction *selectedAction = tableContextMenu->exec(formPos);
+    if(selectedAction == addTranspMenuAction) {
         emit requestAddTransportation();
     }
 }
 
 //==============================================================================
 
-DriverDetailTab::DriverDetailTab()
+DriverDetailTab::DriverDetailTab(DataBase *db)
 {
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     /*
@@ -401,8 +502,10 @@ DriverDetailTab::DriverDetailTab()
 
 //==============================================================================
 
-AddRouteTab::AddRouteTab()
+AddRouteTab::AddRouteTab(DataBase *db)
 {
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -446,8 +549,10 @@ void AddRouteTab::close()
 
 //==============================================================================
 
-EditRouteTab::EditRouteTab()
+EditRouteTab::EditRouteTab(DataBase *db)
 {
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -491,8 +596,10 @@ void EditRouteTab::close()
 
 //==============================================================================
 
-AddTransportationTab::AddTransportationTab()
+AddTransportationTab::AddTransportationTab(DataBase *db)
 {
+    this->db = db;
+
     QFormLayout *tabLayout = new QFormLayout(this);
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);

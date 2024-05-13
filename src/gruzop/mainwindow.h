@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QMenu>
+#include <QSqlQueryModel>
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
@@ -23,22 +24,24 @@
 #include <QtWidgets/QTableView>
 #include <QtWidgets/QWidget>
 
+#include "database.h"
+
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget *parent, DataBase *db);
     ~MainWindow();
 
 public slots:
     void openLoginTab();
-    void openProfileTab(const QString &username, const QString &role);
-    void openTabsForLogist(const QString &username);
-    void openTabsForDriver(const QString &username);
-    void openTabsForAccounter(const QString &username);
-    void openDriverDetailTab(const QString &username);
+    void openProfileTab();
+    void openTabsForLogist();
+    void openTabsForDriver();
+    void openTabsForAccounter();
+    void openDriverDetailTab();
     void openAddRouteTab();
     void openEditRouteTab();
     void openAddTransportationTab();
@@ -47,9 +50,36 @@ private:
     QWidget *central;
     QHBoxLayout *layout;
     QTabWidget *tabWidget;
+    DataBase *db;
 
     void addTab(QWidget *tab, const QString &tabname);
     void resetTabs();
+};
+
+
+class UserListTab : public QWidget
+{
+    Q_OBJECT
+
+public:
+    UserListTab(DataBase *db);
+
+public slots:
+    virtual void showTableContextMenu(QPoint position);
+    virtual void resetQueryModel();
+
+signals:
+    void requestUpdateTable();
+
+protected:
+    DataBase *db;
+    QTableView *table;
+    QSqlQueryModel *tableModel;
+    QMenu *tableContextMenu;
+    QAction *updateTableAction;
+
+    virtual bool actionTableContextMenu(QAction *selected);
+
 };
 
 
@@ -58,14 +88,15 @@ class LoginTab : public QWidget
     Q_OBJECT
 
 public:
-    LoginTab();
+    LoginTab(DataBase *db);
 
 signals:
-    void userLoginAsLogist(const QString &username);
-    void userLoginAsDriver(const QString &username);
-    void userLoginAsAccounter(const QString &username);
+    void userLoginAsLogist();
+    void userLoginAsDriver();
+    void userLoginAsAccounter();
 
 private:
+    DataBase *db;
     QLineEdit *loginEdit;
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
@@ -80,12 +111,13 @@ class ProfileTab : public QWidget
     Q_OBJECT
 
 public:
-    ProfileTab(const QString &username, const QString &role);
+    ProfileTab(DataBase *db);
 
 signals:
     void userLogout();
 
 private:
+    DataBase *db;
     QLineEdit *userEditRO;
     QLineEdit *userRoleEditRO;
     QPushButton *logoutButton;
@@ -99,45 +131,51 @@ private slots:
 };
 
 
-class DriversTab : public QWidget
+class DriversTab : public UserListTab
 {
     Q_OBJECT
 
 public:
-    DriversTab();
+    DriversTab(DataBase *db);
 
 public slots:
     void showTableContextMenu(QPoint pos);
+    void resetQueryModel();
 
 signals:
     void requestDriverDetail(const QString &username);
 
 private:
-    QTableView *table;
+    QAction *showTranspMenuAction;
+
+    virtual bool actionTableContextMenu(QAction *selected);
+
 };
 
 
-class LogistsTab : public QWidget
+class LogistsTab : public UserListTab
 {
     Q_OBJECT
 
 public:
-    LogistsTab();
+    LogistsTab(DataBase *db);
 
-private:
-    QTableView *table;
+public slots:
+    void resetQueryModel();
+
 };
 
 
-class AccountersTab : public QWidget
+class AccountersTab : public UserListTab
 {
     Q_OBJECT
 
 public:
-    AccountersTab();
+    AccountersTab(DataBase *db);
 
-private:
-    QTableView *table;
+public slots:
+    void resetQueryModel();
+
 };
 
 
@@ -146,7 +184,7 @@ class RoutesTab : public QWidget
     Q_OBJECT
 
 public:
-    RoutesTab();
+    RoutesTab(DataBase *db);
 
 public slots:
     void showTableContextMenu(QPoint pos);
@@ -156,7 +194,12 @@ signals:
     void requestEditRoute();
 
 private:
+    DataBase *db;
     QTableView *table;
+    QMenu *tableContextMenu;
+    QAction *addRouteMenuAction;
+    QAction *editRouteMenuAction;
+    QItemSelectionModel *tableSelectionModel;
 };
 
 
@@ -165,7 +208,7 @@ class TransportationsTab : public QWidget
     Q_OBJECT
 
 public:
-    TransportationsTab();
+    TransportationsTab(DataBase *db);
 
 public slots:
     void showTableContextMenu(QPoint pos);
@@ -175,7 +218,10 @@ signals:
     void requestEditTransportation();
 
 private:
+    DataBase *db;
     QTableView *table;
+    QMenu *tableContextMenu;
+    QAction *addTranspMenuAction;
 };
 
 
@@ -184,9 +230,10 @@ class DriverDetailTab : public QWidget
     Q_OBJECT
 
 public:
-    DriverDetailTab();
+    DriverDetailTab(DataBase *db);
 
 private:
+    DataBase *db;
     QComboBox *selectPeriodCombo;
     QDateEdit *fromDate;
     QDateEdit *toDate;
@@ -202,12 +249,13 @@ class AddRouteTab : public QWidget
     Q_OBJECT
 
 public:
-    AddRouteTab();
+    AddRouteTab(DataBase *db);
 
 public slots:
     void close();
 
 private:
+    DataBase *db;
     QLineEdit *routeNameEdit;
     QLineEdit *fromEdit;
     QLineEdit *toEdit;
@@ -224,12 +272,13 @@ class EditRouteTab : public QWidget
     Q_OBJECT
 
 public:
-    EditRouteTab();
+    EditRouteTab(DataBase *db);
 
 public slots:
     void close();
 
 private:
+    DataBase *db;
     QLineEdit *routeNameEdit;
     QLineEdit *fromEdit;
     QLineEdit *toEdit;
@@ -246,12 +295,13 @@ class AddTransportationTab : public QWidget
     Q_OBJECT
 
 public:
-    AddTransportationTab();
+    AddTransportationTab(DataBase *db);
 
 public slots:
     void close();
 
 private:
+    DataBase *db;
     QComboBox *firstDriverCombo;
     QSpinBox *firstDriverBonusSpin;
     QComboBox *secondDriverCombo;
