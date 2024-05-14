@@ -41,7 +41,7 @@ public slots:
     void openTabsForLogist();
     void openTabsForDriver();
     void openTabsForAccounter();
-    void openDriverDetailTab();
+    void openDriverDetailTab(const QString userID);
     void openAddRouteTab();
     void openEditRouteTab();
     void openAddTransportationTab();
@@ -57,12 +57,12 @@ private:
 };
 
 
-class UserListTab : public QWidget
+class GeneralizedListTab : public QWidget
 {
     Q_OBJECT
 
 public:
-    UserListTab(DataBase *db);
+    GeneralizedListTab(DataBase *db);
 
 public slots:
     virtual void showTableContextMenu(QPoint position);
@@ -78,9 +78,7 @@ protected:
     QMenu *tableContextMenu;
     QAction *updateTableAction;
 
-    virtual bool actionTableContextMenu(QAction *selected);
-
-};
+ };
 
 
 class LoginTab : public QWidget
@@ -131,7 +129,7 @@ private slots:
 };
 
 
-class DriversTab : public UserListTab
+class DriversTab : public GeneralizedListTab
 {
     Q_OBJECT
 
@@ -139,21 +137,21 @@ public:
     DriversTab(DataBase *db);
 
 public slots:
-    void showTableContextMenu(QPoint pos);
     void resetQueryModel();
+    void showTableContextMenu(QPoint position);
+    void detailSelectedDriver();
+
 
 signals:
-    void requestDriverDetail(const QString &username);
+    void requestDriverDetail(const QString userID);
 
 private:
     QAction *showTranspMenuAction;
 
-    virtual bool actionTableContextMenu(QAction *selected);
-
-};
+ };
 
 
-class LogistsTab : public UserListTab
+class LogistsTab : public GeneralizedListTab
 {
     Q_OBJECT
 
@@ -166,7 +164,7 @@ public slots:
 };
 
 
-class AccountersTab : public UserListTab
+class AccountersTab : public GeneralizedListTab
 {
     Q_OBJECT
 
@@ -179,7 +177,7 @@ public slots:
 };
 
 
-class RoutesTab : public QWidget
+class RoutesTab : public GeneralizedListTab
 {
     Q_OBJECT
 
@@ -187,23 +185,20 @@ public:
     RoutesTab(DataBase *db);
 
 public slots:
-    void showTableContextMenu(QPoint pos);
+    void resetQueryModel();
+    void showTableContextMenu(QPoint position);
 
 signals:
     void requestAddRoute();
     void requestEditRoute();
 
 private:
-    DataBase *db;
-    QTableView *table;
-    QMenu *tableContextMenu;
     QAction *addRouteMenuAction;
     QAction *editRouteMenuAction;
-    QItemSelectionModel *tableSelectionModel;
 };
 
 
-class TransportationsTab : public QWidget
+class TransportationsTab : public GeneralizedListTab
 {
     Q_OBJECT
 
@@ -211,16 +206,13 @@ public:
     TransportationsTab(DataBase *db);
 
 public slots:
-    void showTableContextMenu(QPoint pos);
+    void resetQueryModel();
 
 signals:
     void requestAddTransportation();
-    void requestEditTransportation();
+    // void requestEditTransportation();
 
 private:
-    DataBase *db;
-    QTableView *table;
-    QMenu *tableContextMenu;
     QAction *addTranspMenuAction;
 };
 
@@ -230,10 +222,16 @@ class DriverDetailTab : public QWidget
     Q_OBJECT
 
 public:
-    DriverDetailTab(DataBase *db);
+    DriverDetailTab(DataBase *db, const QString &userID = "", bool closable = false);
+
+public slots:
+    void showTableContextMenu(QPoint position);
+    void resetQueryModel();
+    void close();
 
 private:
     DataBase *db;
+    QString userID;
     QComboBox *selectPeriodCombo;
     QDateEdit *fromDate;
     QDateEdit *toDate;
@@ -241,6 +239,10 @@ private:
     QLineEdit *userEditRO;
     QLineEdit *salaryForPeriodRO;
     QTableView *table;
+    QSqlQueryModel *tableModel;
+    QMenu *tableContextMenu;
+    QAction *updateTableAction;
+    QPushButton *closeButton;
 };
 
 
@@ -252,6 +254,7 @@ public:
     AddRouteTab(DataBase *db);
 
 public slots:
+    void addRoute();
     void close();
 
 private:
@@ -275,6 +278,7 @@ public:
     EditRouteTab(DataBase *db);
 
 public slots:
+    void editRoute();
     void close();
 
 private:
@@ -298,6 +302,7 @@ public:
     AddTransportationTab(DataBase *db);
 
 public slots:
+    void addTransportation();
     void close();
 
 private:

@@ -25,6 +25,7 @@ void MainWindow::addTab(QWidget *tab, const QString &tabname)
 
 void MainWindow::resetTabs()
 {
+    db->disconnect();
     if(tabWidget) {
         delete tabWidget;
     }
@@ -87,15 +88,12 @@ void MainWindow::openTabsForAccounter()
     openProfileTab();
 
     DriversTab *drivers = new DriversTab(db);
-    drivers->resetQueryModel();
     connect(drivers, &DriversTab::requestDriverDetail,
             this, &MainWindow::openDriverDetailTab);
 
     LogistsTab *logists = new LogistsTab(db);
-    logists->resetQueryModel();
 
     AccountersTab *accounters = new AccountersTab(db);
-    accounters->resetQueryModel();
 
     addTab(drivers, "Водители");
     addTab(logists, "Логисты");
@@ -103,10 +101,10 @@ void MainWindow::openTabsForAccounter()
 }
 
 
-void MainWindow::openDriverDetailTab()
+void MainWindow::openDriverDetailTab(const QString userID = "")
 {
-    DriverDetailTab *tab = new DriverDetailTab(db);
-    addTab(tab, db->getUserShortName());
+    DriverDetailTab *tab = new DriverDetailTab(db, userID, true);
+    addTab(tab, "Перевозки водителя");
     tabWidget->setCurrentWidget(tab);
 }
 
@@ -136,7 +134,7 @@ void MainWindow::openAddTransportationTab()
 
 //==============================================================================
 
-UserListTab::UserListTab(DataBase *db)
+GeneralizedListTab::GeneralizedListTab(DataBase *db)
 {
     this->db = db;
 
@@ -151,37 +149,25 @@ UserListTab::UserListTab(DataBase *db)
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setModel(tableModel);
     connect(table, &QTableView::customContextMenuRequested,
-            this, &UserListTab::showTableContextMenu);
+            this, &GeneralizedListTab::showTableContextMenu);
 
     tableContextMenu = new QMenu;
+
     updateTableAction = new QAction("Обновить", this);
     tableContextMenu->addAction(updateTableAction);
-
-    connect(this, &UserListTab::requestUpdateTable,
-            this, &UserListTab::resetQueryModel);
+    connect(updateTableAction, &QAction::triggered,
+            this, &GeneralizedListTab::resetQueryModel);
 }
 
 
-void UserListTab::showTableContextMenu(QPoint position)
+void GeneralizedListTab::showTableContextMenu(QPoint position)
 {
-    QPoint formPos = mapToGlobal(position);
-    QAction *selectedAction = tableContextMenu->exec(formPos);
-    actionTableContextMenu(selectedAction);
+    QPoint formPos = table->viewport()->mapToGlobal(position);
+    tableContextMenu->popup(formPos);
 }
 
 
-bool UserListTab::actionTableContextMenu(QAction *selected)
-{
-    if(selected == updateTableAction) {
-        emit requestUpdateTable();
-    } else {
-        return false;
-    }
-    return true;
-}
-
-
-void UserListTab::resetQueryModel()
+void GeneralizedListTab::resetQueryModel()
 {
 }
 
@@ -245,7 +231,16 @@ void LoginTab::loginPressed()
     case UserRole::Accounter:
         emit userLoginAsAccounter();
         break;
+    case UserRole::Unknown:
+        // Fallthrough
     default:
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Critical);
+        msgBox.setText("Неизвестный тип учётной записи!");
+        msgBox.setInformativeText("Свяжитесь с администратором системы.");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.exec();
         return;
     }
 
@@ -318,146 +313,147 @@ void ProfileTab::logoutPressed()
 //==============================================================================
 
 DriversTab::DriversTab(DataBase *db)
-    : UserListTab(db)
+    : GeneralizedListTab(db)
 {
     showTranspMenuAction = new QAction("Просмотреть перевозки", this);
     tableContextMenu->addAction(showTranspMenuAction);
+    connect(showTranspMenuAction, &QAction::triggered,
+            this, &DriversTab::detailSelectedDriver);
+
+    DriversTab::resetQueryModel();
 }
 
 
-void DriversTab::showTableContextMenu(QPoint pos)
+void DriversTab::showTableContextMenu(QPoint position)
 {
-    QPoint formPos = mapToGlobal(pos);
-    QAction *selectedAction = tableContextMenu->exec(formPos);
-    bool actionPerformed = actionTableContextMenu(selectedAction);
-    if(!actionPerformed) {
-        UserListTab::actionTableContextMenu(selectedAction);
+    tableContextMenu->removeAction(showTranspMenuAction);
+    QItemSelectionModel *select = table->selectionModel();
+    if(select->hasSelection()) {
+        tableContextMenu->addAction(showTranspMenuAction);
     }
+
+    QPoint formPos = table->viewport()->mapToGlobal(position);
+    tableContextMenu->popup(formPos);
 }
 
 
-bool DriversTab::actionTableContextMenu(QAction *selected)
+void DriversTab::detailSelectedDriver()
 {
-    if(selected == showTranspMenuAction) {
-        emit requestDriverDetail("example_driver");
-    } else {
-        return false;
-    }
-    return true;
+    QItemSelectionModel *select = table->selectionModel();
+    QModelIndex index = select->currentIndex();
+    QString driverID = index.sibling(index.row(), 0).data().toString();
+    emit requestDriverDetail(driverID);
 }
 
 
 void DriversTab::resetQueryModel()
 {
     tableModel->setQuery("SELECT * FROM users WHERE role='driver';");
+    table->resizeColumnsToContents();
 }
 
 //==============================================================================
 
 LogistsTab::LogistsTab(DataBase *db)
-    : UserListTab(db)
+    : GeneralizedListTab(db)
 {
+    LogistsTab::resetQueryModel();
 }
 
 
 void LogistsTab::resetQueryModel()
 {
     tableModel->setQuery("SELECT * FROM users WHERE role='logist';");
+    table->resizeColumnsToContents();
 }
 
 //==============================================================================
 
 AccountersTab::AccountersTab(DataBase *db)
-    : UserListTab(db)
+    : GeneralizedListTab(db)
 {
+    AccountersTab::resetQueryModel();
 }
 
 
 void AccountersTab::resetQueryModel()
 {
     tableModel->setQuery("SELECT * FROM users WHERE role='accounter';");
+    table->resizeColumnsToContents();
 }
 
 //==============================================================================
 
 RoutesTab::RoutesTab(DataBase *db)
+    : GeneralizedListTab(db)
 {
-    this->db = db;
-
-    QFormLayout *tabLayout = new QFormLayout(this);
-
-    table = new QTableView;
-    /*
-     * TODO
-    table->setModel();
-    table->show();
-    */
-    tabLayout->addWidget(table);
-    table->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(table, &QTableView::customContextMenuRequested,
-            this, &RoutesTab::showTableContextMenu);
-
-    tableSelectionModel = table->selectionModel();
-
-    tableContextMenu = new QMenu;
     addRouteMenuAction = new QAction("Добавить маршрут", this);
+    tableContextMenu->addAction(addRouteMenuAction);
+    connect(addRouteMenuAction, &QAction::triggered,
+            this, &RoutesTab::requestAddRoute);
+
     editRouteMenuAction = new QAction("Изменить маршрут", this);
+    tableContextMenu->addAction(editRouteMenuAction);
+    connect(editRouteMenuAction, &QAction::triggered,
+            this, &RoutesTab::requestEditRoute);
+
+    RoutesTab::resetQueryModel();
 }
 
 
-void RoutesTab::showTableContextMenu(QPoint pos)
+void RoutesTab::showTableContextMenu(QPoint position)
 {
-    tableContextMenu->addAction(addRouteMenuAction);
-    if(tableSelectionModel->hasSelection()) {
+    tableContextMenu->removeAction(editRouteMenuAction);
+    QItemSelectionModel *select = table->selectionModel();
+    if(select->hasSelection()) {
         tableContextMenu->addAction(editRouteMenuAction);
     }
 
-    QPoint formPos = mapToGlobal(pos);
-    QAction *selectedAction = tableContextMenu->exec(formPos);
-    if(selectedAction == addRouteMenuAction) {
-        emit requestAddRoute();
-    } else if(selectedAction == editRouteMenuAction) {
-        emit requestEditRoute();
-    }
+    QPoint formPos = table->viewport()->mapToGlobal(position);
+    tableContextMenu->popup(formPos);
+}
+
+
+void RoutesTab::resetQueryModel()
+{
+    tableModel->setQuery("SELECT * FROM routes;");
+    table->resizeColumnsToContents();
 }
 
 //==============================================================================
 
 TransportationsTab::TransportationsTab(DataBase *db)
+    : GeneralizedListTab(db)
 {
-    this->db = db;
-
-    QFormLayout *tabLayout = new QFormLayout(this);
-
-    table = new QTableView;
-    tabLayout->addWidget(table);
-    table->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(table, &QTableView::customContextMenuRequested,
-            this, &TransportationsTab::showTableContextMenu);
-
-    tableContextMenu = new QMenu;
     addTranspMenuAction = new QAction("Добавить перевозку", this);
+    tableContextMenu->addAction(addTranspMenuAction);
+    connect(addTranspMenuAction, &QAction::triggered,
+            this, &TransportationsTab::requestAddTransportation);
+
+    TransportationsTab::resetQueryModel();
 }
 
 
-void TransportationsTab::showTableContextMenu(QPoint pos)
+void TransportationsTab::resetQueryModel()
 {
-    tableContextMenu->addAction(addTranspMenuAction);
-
-    QPoint formPos = mapToGlobal(pos);
-    QAction *selectedAction = tableContextMenu->exec(formPos);
-    if(selectedAction == addTranspMenuAction) {
-        emit requestAddTransportation();
-    }
+    tableModel->setQuery("SELECT * FROM transportations;");
+    table->resizeColumnsToContents();
 }
 
 //==============================================================================
 
-DriverDetailTab::DriverDetailTab(DataBase *db)
+DriverDetailTab::DriverDetailTab(DataBase *db, const QString &userID, bool closable)
 {
     this->db = db;
+    if(userID.isEmpty()) {
+        this->userID = QString::number(db->getUserID());
+    } else {
+        this->userID = userID;
+    }
 
     QFormLayout *tabLayout = new QFormLayout(this);
+
+    tableModel = new QSqlQueryModel;
 
     /*
     selectPeriodCombo = new QComboBox;
@@ -490,6 +486,18 @@ DriverDetailTab::DriverDetailTab(DataBase *db)
     table = new QTableView;
     tabLayout->addRow(table);
     table->setContextMenuPolicy(Qt::CustomContextMenu);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setModel(tableModel);
+    connect(table, &QTableView::customContextMenuRequested,
+            this, &DriverDetailTab::showTableContextMenu);
+
+    tableContextMenu = new QMenu;
+
+    updateTableAction = new QAction("Обновить", this);
+    tableContextMenu->addAction(updateTableAction);
+    connect(updateTableAction, &QAction::triggered,
+            this, &DriverDetailTab::resetQueryModel);
 
     salaryForPeriodRO = new QLineEdit;
     salaryForPeriodRO->setReadOnly(true);
@@ -498,6 +506,40 @@ DriverDetailTab::DriverDetailTab(DataBase *db)
     QLabel *disregardLabel =
         new QLabel("Перевозки \"В работе\" при подсчёте не учитываются!");
     tabLayout->addRow(disregardLabel);
+
+    if(closable) {
+        closeButton = new QPushButton("Закрыть");
+        tabLayout->addRow(closeButton);
+        connect(closeButton, &QPushButton::clicked,
+                this, &DriverDetailTab::close);
+    }
+
+    resetQueryModel();
+}
+
+
+void DriverDetailTab::showTableContextMenu(QPoint position)
+{
+    QPoint formPos = table->viewport()->mapToGlobal(position);
+    tableContextMenu->popup(formPos);
+}
+
+
+void DriverDetailTab::resetQueryModel()
+{
+    QString req = "SELECT * FROM "
+                  "transportations "
+                  "JOIN drv_transp ON drv_transp.transp=transportations.id "
+                  "WHERE drv_transp.driver=%1;";
+    req = req.arg(userID);
+    tableModel->setQuery(req);
+    table->resizeColumnsToContents();
+}
+
+
+void DriverDetailTab::close()
+{
+    deleteLater();
 }
 
 //==============================================================================
@@ -531,6 +573,8 @@ AddRouteTab::AddRouteTab(DataBase *db)
 
     addRouteButton = new QPushButton("Добавить маршрут");
     tabLayout->addRow(addRouteButton);
+    connect(addRouteButton, &QPushButton::clicked,
+            this, &AddRouteTab::addRoute);
 
     cancelButton = new QPushButton("Отмена");
     tabLayout->addRow(cancelButton);
@@ -539,6 +583,11 @@ AddRouteTab::AddRouteTab(DataBase *db)
 
     QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
+}
+
+
+void AddRouteTab::addRoute()
+{
 }
 
 
@@ -578,6 +627,8 @@ EditRouteTab::EditRouteTab(DataBase *db)
 
     confirmButton = new QPushButton("Сохранить изменения");
     tabLayout->addRow(confirmButton);
+    connect(confirmButton, &QPushButton::clicked,
+            this, &EditRouteTab::editRoute);
 
     cancelButton = new QPushButton("Отмена");
     tabLayout->addRow(cancelButton);
@@ -586,6 +637,11 @@ EditRouteTab::EditRouteTab(DataBase *db)
 
     QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
+}
+
+
+void EditRouteTab::editRoute()
+{
 }
 
 
@@ -634,6 +690,8 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 
     addTranspButton = new QPushButton("Добавить перевозку");
     tabLayout->addRow(addTranspButton);
+    connect(addTranspButton, &QPushButton::clicked,
+            this, &AddTransportationTab::addTransportation);
 
     cancelButton = new QPushButton("Отмена");
     tabLayout->addRow(cancelButton);
@@ -642,6 +700,11 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 
     QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
+}
+
+
+void AddTransportationTab::addTransportation()
+{
 }
 
 

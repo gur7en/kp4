@@ -11,10 +11,14 @@ DataBase::DataBase(QObject *parent)
 
 bool DataBase::reconnect(const QString user, const QString password)
 {
-    if(db.isOpen()) {
-        db.close();
-    }
+    db.close();
     return db.open(user, password);
+}
+
+
+void DataBase::disconnect()
+{
+    db.close();
 }
 
 
@@ -32,18 +36,22 @@ bool DataBase::login(const QString &username, const QString &password)
     strquery = strquery.arg(password);
 
     bool success = query.exec(strquery);
+    disconnect();
+
     if(success) {
         query.next();
         success = !query.value(0).isNull();
     }
+
     if(success) {
+        QString role_string;
+        role_string = query.value("role").toString();
+
         user.id = query.value("id").toInt();
         user.login = query.value("login").toString();
         user.surname = query.value("surname").toString();
         user.name = query.value("name").toString();
         user.patronim = query.value("patronim").toString();
-        QString role_string;
-        role_string = query.value("role").toString();
         if(role_string == "driver") {
             user.role = UserRole::Driver;
         } else if(role_string == "logist") {
@@ -99,3 +107,8 @@ QString DataBase::getUserFullName()
     return full_name;
 }
 
+
+int DataBase::getUserID()
+{
+    return user.id;
+}

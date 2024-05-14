@@ -36,11 +36,13 @@ class DataBase : public QObject
 public:
     explicit DataBase(QObject *parent = nullptr);
     bool reconnect(const QString user, const QString password);
+    void disconnect();
     bool login(const QString &username, const QString &password);
     void logout();
     UserRole::Code getUserRole();
     QString getUserFullName();
     QString getUserShortName();
+    int getUserID();
 
 private:
     struct CurrentUser {

@@ -48,28 +48,6 @@ CREATE TABLE drv_transp (
 );
 
 
-GRANT CONNECT ON DATABASE kp4db TO name_checker;
-GRANT CONNECT ON DATABASE kp4db TO driver;
-GRANT CONNECT ON DATABASE kp4db TO accounter;
-GRANT CONNECT ON DATABASE kp4db TO logist;
-
-GRANT SELECT ON users TO name_checker;
-
-GRANT SELECT ON routes TO driver;
-GRANT SELECT ON transportations TO driver;
-GRANT SELECT ON drv_exp TO driver;
-GRANT SELECT ON drv_transp TO driver;
-
-GRANT SELECT, INSERT ON users TO accounter;
-GRANT SELECT, INSERT ON drv_exp TO accounter;
-
-GRANT SELECT ON users TO logist;
-GRANT SELECT ON drv_exp TO logist;
-GRANT SELECT, INSERT, UPDATE ON routes TO logist;
-GRANT SELECT, INSERT, UPDATE ON transportations TO logist;
-GRANT SELECT, INSERT, UPDATE ON drv_transp TO logist;
-
-
 INSERT INTO users
     (fired, role, login, hash, surname, name, patronim, phone, details)
 VALUES
@@ -87,3 +65,45 @@ VALUES
     ( (SELECT id FROM users WHERE login='driver1'), 2),
     ( (SELECT id FROM users WHERE login='driver2'), 4)
 
+
+CREATE OR REPLACE PROCEDURE 
+    check_user(aLogin VARCHAR, aHash VARCHAR)
+LANGUAGE SQL
+BEGIN ATOMIC
+END
+
+CREATE OR REPLACE PROCEDURE 
+    get_user_data(aID INTEGER)    
+LANGUAGE SQL
+BEGIN ATOMIC
+END
+
+CREATE OR REPLACE PROCEDURE 
+    get_logists()    
+LANGUAGE SQL
+BEGIN ATOMIC
+END
+
+CREATE OR REPLACE PROCEDURE 
+    get_drivers()    
+LANGUAGE SQL
+BEGIN ATOMIC
+END
+
+CREATE OR REPLACE PROCEDURE 
+    get_accounters()    
+LANGUAGE SQL
+BEGIN ATOMIC
+END
+
+CREATE OR REPLACE PROCEDURE 
+    get_routes()    
+LANGUAGE SQL
+BEGIN ATOMIC
+END
+
+CREATE OR REPLACE PROCEDURE 
+    get_transp()    
+LANGUAGE SQL
+BEGIN ATOMIC
+END
