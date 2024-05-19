@@ -41,7 +41,7 @@ public slots:
     void openTabsForLogist();
     void openTabsForDriver();
     void openTabsForAccounter();
-    void openDriverDetailTab(const QString userID);
+    void openDriverDetailTab(int userID);
     void openAddRouteTab();
     void openEditRouteTab();
     void openAddTransportationTab();
@@ -66,7 +66,7 @@ public:
 
 public slots:
     virtual void showTableContextMenu(QPoint position);
-    virtual void resetQueryModel();
+    virtual void resetQueryModel() = 0;
 
 signals:
     void requestUpdateTable();
@@ -143,7 +143,7 @@ public slots:
 
 
 signals:
-    void requestDriverDetail(const QString userID);
+    void requestDriverDetail(int userID);
 
 private:
     QAction *showTranspMenuAction;
@@ -210,10 +210,13 @@ public slots:
 
 signals:
     void requestAddTransportation();
-    // void requestEditTransportation();
+    void requestSuccessTransportation();
+    void requestCancelTransportation();
 
 private:
     QAction *addTranspMenuAction;
+    QAction *successTranspMenuAction;
+    QAction *cancelTranspMenuAction;
 };
 
 
@@ -222,7 +225,7 @@ class DriverDetailTab : public QWidget
     Q_OBJECT
 
 public:
-    DriverDetailTab(DataBase *db, const QString &userID = "", bool closable = false);
+    DriverDetailTab(DataBase *db, int userID = 0, bool closable = false);
 
 public slots:
     void showTableContextMenu(QPoint position);
@@ -231,7 +234,7 @@ public slots:
 
 private:
     DataBase *db;
-    QString userID;
+    int userID;
     QComboBox *selectPeriodCombo;
     QDateEdit *fromDate;
     QDateEdit *toDate;

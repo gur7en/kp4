@@ -5,16 +5,22 @@
 #include <QString>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QSqlError>
+#include <QSqlQueryModel>
 
 class UserRole
 {
 public:
     enum Code {
+        Unlogin,
         Unknown,
         Driver,
         Logist,
         Accounter
     };
+
+    UserRole(Code code)
+    { roleCode = code; }
 
     Code operator = (const UserRole::Code code)
     { return (roleCode = code); }
@@ -25,8 +31,18 @@ public:
     operator Code() const
     { return roleCode; }
 
+    QString toString() const
+    { return strings[roleCode]; }
+
 private:
     Code roleCode;
+    const QString strings[5] = {
+        "unlogin",
+        "unknown",
+        "driver",
+        "logist",
+        "accounter"
+    };
 };
 
 
@@ -37,25 +53,22 @@ public:
     explicit DataBase(QObject *parent = nullptr);
     bool reconnect(const QString user, const QString password);
     void disconnect();
-    bool login(const QString &username, const QString &password);
+    UserRole::Code login(const QString &username, const QString &password);
     void logout();
-    UserRole::Code getUserRole();
-    QString getUserFullName();
-    QString getUserShortName();
-    int getUserID();
+    int userID();
+    UserRole::Code userRole();
+    QString userFullName();
+    QString userShortName();
+    QSqlQuery usersQuery(UserRole::Code role_code);
+    QSqlQuery routesQuery();
+    QSqlQuery routesQueryAll();
+    QSqlQuery transportationsQuery();
+    QSqlQuery driverTranspQuery(int id = 0);
 
 private:
-    struct CurrentUser {
-        int id;
-        UserRole role;
-        QString login;
-        QString surname;
-        QString name;
-        QString patronim;
-    };
-
     QSqlDatabase db;
-    CurrentUser user;
+    int currentUserID;
+    UserRole::Code currentUserRole;
 
 signals:
 };

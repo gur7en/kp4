@@ -22,21 +22,19 @@ void DataBase::disconnect()
 }
 
 
-bool DataBase::login(const QString &username, const QString &password)
+UserRole::Code DataBase::login(const QString &username, const QString &password)
 {
-    QSqlQuery query(db);
-    QString strquery("SELECT id, login, surname, name, patronim, role "
-                     "FROM users "
-                     "WHERE login = '%1' "
-                     "AND hash = '%2' "
-                     "AND fired = false "
-                     ";"
-                     );
-    strquery = strquery.arg(username);
-    strquery = strquery.arg(password);
+    UserRole::Code result = UserRole::Unlogin;
 
-    bool success = query.exec(strquery);
-    disconnect();
+    QSqlQuery query(db);
+    query.prepare("SELECT id, role FROM users "
+                  "WHERE login = :login AND hash = :hash "
+                  "AND fired = false ;"
+                  );
+    query.bindValue(":login", username);
+    query.bindValue(":hash", password);
+
+    bool success = query.exec();
 
     if(success) {
         query.next();
@@ -44,71 +42,251 @@ bool DataBase::login(const QString &username, const QString &password)
     }
 
     if(success) {
+        currentUserID = query.value("id").toInt();
         QString role_string;
         role_string = query.value("role").toString();
-
-        user.id = query.value("id").toInt();
-        user.login = query.value("login").toString();
-        user.surname = query.value("surname").toString();
-        user.name = query.value("name").toString();
-        user.patronim = query.value("patronim").toString();
         if(role_string == "driver") {
-            user.role = UserRole::Driver;
+            result = UserRole::Driver;
         } else if(role_string == "logist") {
-            user.role = UserRole::Logist;
+            result = UserRole::Logist;
         } else if(role_string == "accounter") {
-            user.role = UserRole::Accounter;
+            result = UserRole::Accounter;
         } else {
-            user.role = UserRole::Unknown;
+            result = UserRole::Unknown;
         }
     }
-    return success;
+    currentUserRole = result;
+    return result;
 }
 
 
 void DataBase::logout()
 {
-    user = CurrentUser();
+    currentUserID = 0;
 }
 
 
-UserRole::Code DataBase::getUserRole()
+int DataBase::userID()
 {
-    return user.role;
+    return currentUserID;
 }
 
 
-QString DataBase::getUserShortName()
+UserRole::Code DataBase::userRole()
 {
-    QString short_name;
-    short_name += user.surname;
-    short_name += " ";
-    short_name += user.name[0];
-    short_name += ".";
-    if(!user.patronim.isEmpty()) {
-        short_name += " ";
-        short_name += user.patronim[0];
-        short_name += ".";
+    return currentUserRole;
+}
+
+
+QString DataBase::userFullName()
+{
+    QSqlQuery query(db);
+    query.prepare("SELECT getFullName(:id) ;");
+    query.bindValue(":id", currentUserID);
+
+    bool success = query.exec();
+
+    if(success) {
+        query.next();
+        success = !query.value(0).isNull();
     }
-    return short_name;
-}
 
-
-QString DataBase::getUserFullName()
-{
-    QString full_name;
-    full_name += user.surname;
-    full_name += " ";
-    full_name += user.name;
-    if(!user.patronim.isEmpty()) {
-        full_name += " ";
-        full_name += user.patronim;
+    if(success) {
+        return query.value("FullName").toString();
     }
-    return full_name;
+
+    return "";
 }
 
 
-int DataBase::getUserID()
+QString DataBase::userShortName()
 {
-    return user.id;
+    QSqlQuery query(db);
+    query.prepare("SELECT getShortName(:id) ;");
+    query.bindValue(":id", currentUserID);
+
+    bool success = query.exec();
+
+    if(success) {
+        query.next();
+        success = !query.value(0).isNull();
+    }
+
+    if(success) {
+        return query.value("FullName").toString();
+    }
+
+    return "";
+}
+
+
+QSqlQuery DataBase::usersQuery(UserRole::Code role_code)
+{
+    UserRole role(role_code);
+    QString str_query;
+    str_query += "SELECT "
+                 "    id, "
+                 "    surname AS Фамилия, "
+                 "    name AS Имя, "
+                 "    patronim AS Отчество, "
+                 "    phone AS Телефон, "
+                 "    details AS Примечание "
+        ;
+    if(role == UserRole::Driver) {
+        str_query += ", experience AS Стаж ";
+    }
+
+    str_query += "FROM users "
+                 "LEFT JOIN drv_exp ON users.id = drv_exp.driver "
+                 "WHERE role = :role "
+                 "AND fired = false ;"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":role", role.toString());
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::routesQuery()
+{
+    QString str_query;
+    str_query += "SELECT "
+                 "    id, "
+                 "    name AS Название, "
+                 "    start_point AS Откуда, "
+                 "    end_point AS Куда, "
+                 "    len AS \"Длина (км)\", "
+                 "    client_price AS Цена, "
+                 "    details AS Примечание "
+                 "FROM routes "
+                 "WHERE active = true ;"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::routesQueryAll()
+{
+    QString str_query;
+    str_query += "SELECT "
+                 "    id, "
+                 "    CASE "
+                 "        WHEN active = true THEN "
+                 "            'Открыт' "
+                 "        WHEN active = false THEN "
+                 "            'Закрыт' "
+                 "        ELSE "
+                 "            'Неизвестно' "
+                 "    END Статус, "
+                 "    name AS Название, "
+                 "    start_point AS Откуда, "
+                 "    end_point AS Куда, "
+                 "    len AS \"Длина (км)\", "
+                 "    client_price AS Цена, "
+                 "    details AS Примечание "
+                 "FROM routes ;"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::transportationsQuery()
+{
+    QString str_query;
+    str_query += "SELECT "
+                 "    tr.id AS id, "
+                 "    CASE "
+                 "        WHEN tr.status = 0 THEN "
+                 "            'В работе' "
+                 "        WHEN tr.status = 1 THEN "
+                 "            'Завершено' "
+                 "        WHEN tr.status = 2 THEN "
+                 "            'Отменено' "
+                 "        ELSE "
+                 "            'Неизвестно' "
+                 "        END Статус, "
+                 "    tr.start_time AS Начато, "
+                 "    tr.end_time AS Завершено, "
+                 "    routes.name AS Маршрут, "
+                 "    routes.start_point AS Откуда, "
+                 "    routes.end_point AS Куда, "
+                 "    getShortName(du1.id) AS \"Водитель 1\", "
+                 "    getShortName(du2.id) AS \"Водитель 2\" "
+                 "FROM transportations tr "
+                 "JOIN routes "
+                 "    ON tr.route = routes.id "
+                 "JOIN drv_transp dt1 "
+                 "    ON dt1.transp = tr.id "
+                 "    AND dt1.driver_number = 1 "
+                 "JOIN users du1 "
+                 "    ON du1.id = dt1.driver "
+                 "LEFT JOIN drv_transp dt2 "
+                 "    ON dt2.transp = tr.id "
+                 "    AND dt2.driver_number = 2 "
+                 "LEFT JOIN users du2 "
+                 "    ON du2.id = dt2.driver "
+                 "ORDER BY "
+                 "    tr.status,"
+                 "    tr.start_time,"
+                 "    tr.end_time, "
+                 "    routes.name "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::driverTranspQuery(int id)
+{
+    QString str_query;
+    str_query += "SELECT "
+                 "    tr.id AS id, "
+                 "    tr.status AS Статус, "
+                 "    tr.start_time AS Начато, "
+                 "    tr.end_time AS Завершено, "
+                 "    routes.start_point AS Откуда, "
+                 "    routes.end_point AS Куда, "
+                 "    routes.drv_fee_base + drv_transp.driver_bonus AS Плата "
+                 "FROM transportations tr "
+                 "JOIN routes "
+                 "    ON tr.route = routes.id "
+                 "JOIN drv_transp "
+                 "    ON drv_transp.transp = tr.id "
+                 "JOIN users "
+                 "    ON users.id = drv_transp.driver "
+                 "WHERE "
+                 "    users.id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+
+    if(id == 0) {
+        id = currentUserID;
+    }
+
+    query.bindValue(":id", id);
+    query.exec();
+
+    return query;
 }

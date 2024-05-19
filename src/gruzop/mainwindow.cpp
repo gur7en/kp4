@@ -12,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent, DataBase *db)
     resetTabs();
 }
 
+
 MainWindow::~MainWindow()
 {
 }
@@ -25,11 +26,11 @@ void MainWindow::addTab(QWidget *tab, const QString &tabname)
 
 void MainWindow::resetTabs()
 {
+    db->logout();
     db->disconnect();
     if(tabWidget) {
         delete tabWidget;
     }
-    db->logout();
     tabWidget = new QTabWidget;
     layout->addWidget(tabWidget);
     openLoginTab();
@@ -38,6 +39,7 @@ void MainWindow::resetTabs()
 
 void MainWindow::openLoginTab()
 {
+    db->reconnect("gestart", "");
     LoginTab *tab = new LoginTab(db);
     addTab(tab, "Вход в программу");
     connect(tab, &LoginTab::userLoginAsLogist,
@@ -101,7 +103,7 @@ void MainWindow::openTabsForAccounter()
 }
 
 
-void MainWindow::openDriverDetailTab(const QString userID = "")
+void MainWindow::openDriverDetailTab(int userID)
 {
     DriverDetailTab *tab = new DriverDetailTab(db, userID, true);
     addTab(tab, "Перевозки водителя");
@@ -166,11 +168,6 @@ void GeneralizedListTab::showTableContextMenu(QPoint position)
     tableContextMenu->popup(formPos);
 }
 
-
-void GeneralizedListTab::resetQueryModel()
-{
-}
-
 //==============================================================================
 
 LoginTab::LoginTab(DataBase *db)
@@ -205,8 +202,11 @@ void LoginTab::loginPressed()
 {
     QString username = loginEdit->text();
     QString password = passwordEdit->text();
-    bool success_login = db->login(username, password);
-    if(!success_login) {
+
+    UserRole::Code role;
+    role = db->login(username, password);
+
+    if(role == UserRole::Unlogin) {
         QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Введён неверный логин или пароль!");
@@ -219,9 +219,18 @@ void LoginTab::loginPressed()
         msgBox.setDefaultButton(QMessageBox::Ok);
         msgBox.exec();
         return;
+    } else if(role == UserRole::Unknown) {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Critical);
+        msgBox.setText("Неизвестный тип учётной записи!");
+        msgBox.setInformativeText("Свяжитесь с администратором системы.");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.exec();
+        return;
     }
 
-    switch(db->getUserRole()) {
+    switch(role) {
     case UserRole::Driver:
         emit userLoginAsDriver();
         break;
@@ -231,17 +240,8 @@ void LoginTab::loginPressed()
     case UserRole::Accounter:
         emit userLoginAsAccounter();
         break;
-    case UserRole::Unknown:
-        // Fallthrough
     default:
-        QMessageBox msgBox;
-        msgBox.setIcon(QMessageBox::Critical);
-        msgBox.setText("Неизвестный тип учётной записи!");
-        msgBox.setInformativeText("Свяжитесь с администратором системы.");
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setDefaultButton(QMessageBox::Ok);
-        msgBox.exec();
-        return;
+        break;
     }
 
     deleteLater();
@@ -265,12 +265,24 @@ ProfileTab::ProfileTab(DataBase *db)
     userEditRO = new QLineEdit;
     userEditRO->setReadOnly(true);
     tabLayout->addRow(userEditRO);
-    userEditRO->setText(db->getUserFullName());
+    userEditRO->setText(db->userFullName());
 
     userRoleEditRO = new QLineEdit;
     userRoleEditRO->setReadOnly(true);
     tabLayout->addRow("Роль", userRoleEditRO);
-    // userRoleEditRO->setText(db->getUserRole());
+    switch(db->userRole()) {
+    case UserRole::Driver:
+        userRoleEditRO->setText("Водитель");
+        break;
+    case UserRole::Logist:
+        userRoleEditRO->setText("Логист");
+        break;
+    case UserRole::Accounter:
+        userRoleEditRO->setText("Бухгалтер");
+        break;
+    default:
+        break;
+    }
 
     logoutButton = new QPushButton("Выйти из системы");
     tabLayout->addRow(logoutButton);
@@ -341,15 +353,16 @@ void DriversTab::detailSelectedDriver()
 {
     QItemSelectionModel *select = table->selectionModel();
     QModelIndex index = select->currentIndex();
-    QString driverID = index.sibling(index.row(), 0).data().toString();
+    int driverID = index.sibling(index.row(), 0).data().toInt();
     emit requestDriverDetail(driverID);
 }
 
 
 void DriversTab::resetQueryModel()
 {
-    tableModel->setQuery("SELECT * FROM users WHERE role='driver';");
+    tableModel->setQuery(db->usersQuery(UserRole::Driver));
     table->resizeColumnsToContents();
+    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -363,8 +376,9 @@ LogistsTab::LogistsTab(DataBase *db)
 
 void LogistsTab::resetQueryModel()
 {
-    tableModel->setQuery("SELECT * FROM users WHERE role='logist';");
+    tableModel->setQuery(db->usersQuery(UserRole::Logist));
     table->resizeColumnsToContents();
+    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -378,8 +392,9 @@ AccountersTab::AccountersTab(DataBase *db)
 
 void AccountersTab::resetQueryModel()
 {
-    tableModel->setQuery("SELECT * FROM users WHERE role='accounter';");
+    tableModel->setQuery(db->usersQuery(UserRole::Accounter));
     table->resizeColumnsToContents();
+    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -416,8 +431,9 @@ void RoutesTab::showTableContextMenu(QPoint position)
 
 void RoutesTab::resetQueryModel()
 {
-    tableModel->setQuery("SELECT * FROM routes;");
+    tableModel->setQuery(db->routesQueryAll());
     table->resizeColumnsToContents();
+    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -430,23 +446,34 @@ TransportationsTab::TransportationsTab(DataBase *db)
     connect(addTranspMenuAction, &QAction::triggered,
             this, &TransportationsTab::requestAddTransportation);
 
+    successTranspMenuAction = new QAction("Завершить перевозку", this);
+    tableContextMenu->addAction(successTranspMenuAction);
+    connect(successTranspMenuAction, &QAction::triggered,
+            this, &TransportationsTab::requestSuccessTransportation);
+
+    cancelTranspMenuAction = new QAction("Отменить перевозку", this);
+    tableContextMenu->addAction(cancelTranspMenuAction);
+    connect(cancelTranspMenuAction, &QAction::triggered,
+            this, &TransportationsTab::requestCancelTransportation);
+
     TransportationsTab::resetQueryModel();
 }
 
 
 void TransportationsTab::resetQueryModel()
 {
-    tableModel->setQuery("SELECT * FROM transportations;");
+    tableModel->setQuery(db->transportationsQuery());
     table->resizeColumnsToContents();
+    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
 
-DriverDetailTab::DriverDetailTab(DataBase *db, const QString &userID, bool closable)
+DriverDetailTab::DriverDetailTab(DataBase *db, int userID, bool closable)
 {
     this->db = db;
-    if(userID.isEmpty()) {
-        this->userID = QString::number(db->getUserID());
+    if(userID == 0) {
+        this->userID = db->userID();
     } else {
         this->userID = userID;
     }
@@ -527,13 +554,9 @@ void DriverDetailTab::showTableContextMenu(QPoint position)
 
 void DriverDetailTab::resetQueryModel()
 {
-    QString req = "SELECT * FROM "
-                  "transportations "
-                  "JOIN drv_transp ON drv_transp.transp=transportations.id "
-                  "WHERE drv_transp.driver=%1;";
-    req = req.arg(userID);
-    tableModel->setQuery(req);
+    tableModel->setQuery(db->driverTranspQuery());
     table->resizeColumnsToContents();
+    table->setColumnHidden(0, true);
 }
 
 
@@ -658,7 +681,8 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 
     QFormLayout *tabLayout = new QFormLayout(this);
 
-    QSpacerItem *verticalSpacer_1 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    QSpacerItem *verticalSpacer_1 = new QSpacerItem
+        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_1);
 
     firstDriverCombo = new QComboBox;
@@ -698,13 +722,19 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
     connect(cancelButton, &QPushButton::clicked,
             this, &AddTransportationTab::close);
 
-    QSpacerItem *verticalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    QSpacerItem *verticalSpacer_2 = new QSpacerItem
+        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
 }
 
 
 void AddTransportationTab::addTransportation()
 {
+    int firstDriverID;
+    int firstDriverBonus;
+    int secondDriverID;
+    int secondDriverBonus;
+    int route;
 }
 
 
