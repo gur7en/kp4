@@ -57,13 +57,21 @@ public:
     void logout();
     int userID();
     UserRole::Code userRole();
-    QString userFullName();
-    QString userShortName();
+    QString userFullName(int id = 0);
+    QString userShortName(int id = 0);
     QSqlQuery usersQuery(UserRole::Code role_code);
     QSqlQuery routesQuery();
+    QSqlQuery addRouteQuery(const QString &name,
+                            const QString &start, const QString &end,
+                            int length, const QString &details,
+                            int client_price, int driver_fee_base);
     QSqlQuery routesQueryAll();
-    QSqlQuery transportationsQuery();
+    QSqlQuery transpQuery();
     QSqlQuery driverTranspQuery(int id = 0);
+    QSqlQuery addTranspQuery();
+    QSqlQuery cancelTranspQuery(int id);
+    QSqlQuery successTranspQuery(int id);
+    QSqlQuery reopenTranspQuery(int id);
 
 private:
     QSqlDatabase db;

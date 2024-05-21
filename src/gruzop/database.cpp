@@ -78,11 +78,15 @@ UserRole::Code DataBase::userRole()
 }
 
 
-QString DataBase::userFullName()
+QString DataBase::userFullName(int id)
 {
+    if(id == 0) {
+        id = currentUserID;
+    }
+
     QSqlQuery query(db);
     query.prepare("SELECT getFullName(:id) ;");
-    query.bindValue(":id", currentUserID);
+    query.bindValue(":id", id);
 
     bool success = query.exec();
 
@@ -92,18 +96,22 @@ QString DataBase::userFullName()
     }
 
     if(success) {
-        return query.value("FullName").toString();
+        return query.value(0).toString();
     }
 
     return "";
 }
 
 
-QString DataBase::userShortName()
+QString DataBase::userShortName(int id)
 {
+    if(id == 0) {
+        id = currentUserID;
+    }
+
     QSqlQuery query(db);
     query.prepare("SELECT getShortName(:id) ;");
-    query.bindValue(":id", currentUserID);
+    query.bindValue(":id", id);
 
     bool success = query.exec();
 
@@ -113,7 +121,7 @@ QString DataBase::userShortName()
     }
 
     if(success) {
-        return query.value("FullName").toString();
+        return query.value(0).toString();
     }
 
     return "";
@@ -163,7 +171,13 @@ QSqlQuery DataBase::routesQuery()
                  "    client_price AS Цена, "
                  "    details AS Примечание "
                  "FROM routes "
-                 "WHERE active = true ;"
+                 "WHERE active = true "
+                 "ORDER BY "
+                 "    active DESC,"
+                 "    start_point,"
+                 "    end_point, "
+                 "    name "
+                 ";"
         ;
 
     QSqlQuery query(db);
@@ -193,7 +207,13 @@ QSqlQuery DataBase::routesQueryAll()
                  "    len AS \"Длина (км)\", "
                  "    client_price AS Цена, "
                  "    details AS Примечание "
-                 "FROM routes ;"
+                 "FROM routes "
+                 "ORDER BY "
+                 "    active DESC,"
+                 "    start_point,"
+                 "    end_point, "
+                 "    name "
+                 ";"
         ;
 
     QSqlQuery query(db);
@@ -204,7 +224,39 @@ QSqlQuery DataBase::routesQueryAll()
 }
 
 
-QSqlQuery DataBase::transportationsQuery()
+QSqlQuery DataBase::addRouteQuery(const QString &name,
+                                  const QString &start, const QString &end,
+                                  int length, const QString &details,
+                                  int client_price, int driver_fee_base)
+{
+    QString str_query;
+    str_query += "INSERT INTO routes "
+                 "    (name, active, start_point, end_point, "
+                 "     len, details, client_price, drv_fee_base "
+                 "    ) "
+                 "VALUES "
+                 "    (:name, true, :start, :end, "
+                 "     :len, :details, :clprice, :drvfee"
+                 "    ) "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":name", name);
+    query.bindValue(":start", start);
+    query.bindValue(":end", end);
+    query.bindValue(":len", length);
+    query.bindValue(":details", details);
+    query.bindValue(":clprice", client_price);
+    query.bindValue(":drvfee", driver_fee_base);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::transpQuery()
 {
     QString str_query;
     str_query += "SELECT "
@@ -260,7 +312,16 @@ QSqlQuery DataBase::driverTranspQuery(int id)
     QString str_query;
     str_query += "SELECT "
                  "    tr.id AS id, "
-                 "    tr.status AS Статус, "
+                 "    CASE "
+                 "        WHEN tr.status = 0 THEN "
+                 "            'В работе' "
+                 "        WHEN tr.status = 1 THEN "
+                 "            'Завершено' "
+                 "        WHEN tr.status = 2 THEN "
+                 "            'Отменено' "
+                 "        ELSE "
+                 "            'Неизвестно' "
+                 "        END Статус, "
                  "    tr.start_time AS Начато, "
                  "    tr.end_time AS Завершено, "
                  "    routes.start_point AS Откуда, "
@@ -275,6 +336,11 @@ QSqlQuery DataBase::driverTranspQuery(int id)
                  "    ON users.id = drv_transp.driver "
                  "WHERE "
                  "    users.id = :id "
+                 "ORDER BY "
+                 "    tr.status,"
+                 "    tr.start_time,"
+                 "    tr.end_time, "
+                 "    routes.name "
                  ";"
         ;
 
@@ -285,6 +351,72 @@ QSqlQuery DataBase::driverTranspQuery(int id)
         id = currentUserID;
     }
 
+    query.bindValue(":id", id);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::successTranspQuery(int id)
+{
+    QString str_query;
+    str_query += "UPDATE "
+                 "    transportations "
+                 "SET "
+                 "    status = 1, "
+                 "    end_time = now() "
+                 "WHERE "
+                 "    id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", id);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::cancelTranspQuery(int id)
+{
+    QString str_query;
+    str_query += "UPDATE "
+                 "    transportations "
+                 "SET "
+                 "    status = 2,"
+                 "    end_time = now() "
+                 "WHERE "
+                 "    id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", id);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::reopenTranspQuery(int id)
+{
+    QString str_query;
+    str_query += "UPDATE "
+                 "    transportations "
+                 "SET "
+                 "    status = 0,"
+                 "    end_time = NULL "
+                 "WHERE "
+                 "    id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
     query.bindValue(":id", id);
     query.exec();
 

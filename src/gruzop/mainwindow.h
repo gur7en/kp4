@@ -73,10 +73,13 @@ signals:
 
 protected:
     DataBase *db;
+    QFormLayout *tabLayout;
     QTableView *table;
     QSqlQueryModel *tableModel;
     QMenu *tableContextMenu;
     QAction *updateTableAction;
+
+    int selectedID();
 
  };
 
@@ -207,33 +210,33 @@ public:
 
 public slots:
     void resetQueryModel();
+    void successTransportation();
+    void cancelTransportation();
+    void reopenTransportation();
 
 signals:
     void requestAddTransportation();
-    void requestSuccessTransportation();
-    void requestCancelTransportation();
 
 private:
     QAction *addTranspMenuAction;
     QAction *successTranspMenuAction;
     QAction *cancelTranspMenuAction;
+    QAction *reopenTranspMenuAction;
 };
 
 
-class DriverDetailTab : public QWidget
+class DriverDetailTab : public GeneralizedListTab
 {
     Q_OBJECT
 
 public:
-    DriverDetailTab(DataBase *db, int userID = 0, bool closable = false);
+    DriverDetailTab(DataBase *db, int id = 0, bool closable = false);
 
 public slots:
-    void showTableContextMenu(QPoint position);
     void resetQueryModel();
     void close();
 
 private:
-    DataBase *db;
     int userID;
     QComboBox *selectPeriodCombo;
     QDateEdit *fromDate;
@@ -241,10 +244,6 @@ private:
     QPushButton *confirmPeriodButton;
     QLineEdit *userEditRO;
     QLineEdit *salaryForPeriodRO;
-    QTableView *table;
-    QSqlQueryModel *tableModel;
-    QMenu *tableContextMenu;
-    QAction *updateTableAction;
     QPushButton *closeButton;
 };
 
@@ -267,6 +266,7 @@ private:
     QLineEdit *toEdit;
     QDoubleSpinBox *lengthSpin;
     QSpinBox *priceSpin;
+    QSpinBox *driverFeeSpin;
     QLineEdit *descriptionEdit;
     QPushButton *addRouteButton;
     QPushButton *cancelButton;
