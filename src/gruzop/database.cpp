@@ -224,6 +224,51 @@ QSqlQuery DataBase::routesQueryAll()
 }
 
 
+QSqlQuery DataBase::routeByIdQuery(int id)
+{
+    QString str_query;
+    str_query += "SELECT "
+                 "    id, "
+                 "    name, "
+                 "    start_point, "
+                 "    end_point, "
+                 "    len, "
+                 "    client_price::numeric AS client_price, "
+                 "    drv_fee_base::numeric AS drv_fee_base, "
+                 "    details "
+                 "FROM routes "
+                 "WHERE id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", id);
+    query.exec();
+
+    return query;
+}
+
+
+void DataBase::parseRoute(QSqlQuery &query,
+                          QString &out_name,
+                          QString &out_start, QString &out_end,
+                          int &out_length, QString &out_details,
+                          int &out_client_price, int &out_driver_fee_base)
+{
+    query.next();
+    if(!query.value(0).isNull()) {
+        out_name = query.value("name").toString();
+        out_start = query.value("start_point").toString();
+        out_end = query.value("end_point").toString();
+        out_length = query.value("len").toString().toDouble();
+        out_details = query.value("details").toString();
+        out_client_price = query.value("client_price").toString().toDouble();
+        out_driver_fee_base = query.value("drv_fee_base").toString().toDouble();
+    }
+}
+
+
 QSqlQuery DataBase::addRouteQuery(const QString &name,
                                   const QString &start, const QString &end,
                                   int length, const QString &details,
@@ -250,6 +295,48 @@ QSqlQuery DataBase::addRouteQuery(const QString &name,
     query.bindValue(":details", details);
     query.bindValue(":clprice", client_price);
     query.bindValue(":drvfee", driver_fee_base);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::activateRouteQuery(int id)
+{
+    QString str_query;
+    str_query += "UPDATE "
+                 "    routes "
+                 "SET "
+                 "    active = true "
+                 "WHERE "
+                 "    id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", id);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::deactivateRouteQuery(int id)
+{
+    QString str_query;
+    str_query += "UPDATE "
+                 "    routes "
+                 "SET "
+                 "    active = false "
+                 "WHERE "
+                 "    id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", id);
     query.exec();
 
     return query;

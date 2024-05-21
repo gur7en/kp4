@@ -60,11 +60,19 @@ public:
     QString userFullName(int id = 0);
     QString userShortName(int id = 0);
     QSqlQuery usersQuery(UserRole::Code role_code);
+    QSqlQuery routeByIdQuery(int id);
+    void parseRoute(QSqlQuery &query,
+                    QString &out_name,
+                    QString &out_start, QString &out_end,
+                    int &out_length, QString &out_details,
+                    int &out_client_price, int &out_driver_fee_base);
     QSqlQuery routesQuery();
     QSqlQuery addRouteQuery(const QString &name,
                             const QString &start, const QString &end,
                             int length, const QString &details,
                             int client_price, int driver_fee_base);
+    QSqlQuery activateRouteQuery(int id);
+    QSqlQuery deactivateRouteQuery(int id);
     QSqlQuery routesQueryAll();
     QSqlQuery transpQuery();
     QSqlQuery driverTranspQuery(int id = 0);

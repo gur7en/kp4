@@ -71,10 +71,8 @@ void MainWindow::openTabsForLogist()
 
     RoutesTab *routes = new RoutesTab(db);
     addTab(routes, "Маршруты");
-    connect(routes, &RoutesTab::requestAddRoute,
+    connect(routes, &RoutesTab::requestAddBasedRoute,
             this, &MainWindow::openAddRouteTab);
-    connect(routes, &RoutesTab::requestEditRoute,
-            this, &MainWindow::openEditRouteTab);
 }
 
 
@@ -111,27 +109,23 @@ void MainWindow::openDriverDetailTab(int userID)
 }
 
 
-void MainWindow::openAddRouteTab()
+void MainWindow::openAddRouteTab(GeneralizedListTab *requester, int baseRouteID)
 {
-    AddRouteTab *tab = new AddRouteTab(db);
+    AddRouteTab *tab = new AddRouteTab(db, baseRouteID);
     addTab(tab, "Добавление маршрута");
     tabWidget->setCurrentWidget(tab);
+    connect(tab, &AddRouteTab::requestUpdateTable,
+            requester, &GeneralizedListTab::resetQueryModel);
 }
 
 
-void MainWindow::openEditRouteTab()
-{
-    EditRouteTab *tab = new EditRouteTab(db);
-    addTab(tab, "Редактирование маршрута");
-    tabWidget->setCurrentWidget(tab);
-}
-
-
-void MainWindow::openAddTransportationTab()
+void MainWindow::openAddTransportationTab(GeneralizedListTab *requester)
 {
     AddTransportationTab *tab = new AddTransportationTab(db);
     addTab(tab, "Добавление перевозки");
     tabWidget->setCurrentWidget(tab);
+    connect(tab, &AddTransportationTab::requestUpdateTable,
+            requester, &GeneralizedListTab::resetQueryModel);
 }
 
 //==============================================================================
@@ -414,26 +408,63 @@ RoutesTab::RoutesTab(DataBase *db)
 {
     tabLayout->addWidget(table);
 
-    addRouteMenuAction = new QAction("Добавить маршрут", this);
+    addRouteMenuAction = new QAction("Новый маршрут", this);
     tableContextMenu->addAction(addRouteMenuAction);
     connect(addRouteMenuAction, &QAction::triggered,
-            this, &RoutesTab::requestAddRoute);
+            this, &RoutesTab::addBlankRoute);
 
-    editRouteMenuAction = new QAction("Изменить маршрут", this);
-    tableContextMenu->addAction(editRouteMenuAction);
-    connect(editRouteMenuAction, &QAction::triggered,
-            this, &RoutesTab::requestEditRoute);
+    addBasedRouteMenuAction = new QAction("Маршрут на основе выбранного", this);
+    connect(addBasedRouteMenuAction, &QAction::triggered,
+            this, &RoutesTab::addBasedOnSelectedRoute);
+
+    actRouteMenuAction = new QAction("Активировать маршрут", this);
+    connect(actRouteMenuAction, &QAction::triggered,
+            this, &RoutesTab::activateRoute);
+
+    deactRouteMenuAction = new QAction("Деактивировать маршрут", this);
+    connect(deactRouteMenuAction, &QAction::triggered,
+            this, &RoutesTab::deactivateRoute);
 
     RoutesTab::resetQueryModel();
 }
 
 
+void RoutesTab::addBlankRoute()
+{
+    emit requestAddBasedRoute(this, 0);
+}
+
+
+void RoutesTab::addBasedOnSelectedRoute()
+{
+    emit requestAddBasedRoute(this, selectedID());
+}
+
+
+void RoutesTab::activateRoute()
+{
+    db->activateRouteQuery(selectedID());
+    resetQueryModel();
+}
+
+
+void RoutesTab::deactivateRoute()
+{
+    db->deactivateRouteQuery(selectedID());
+    resetQueryModel();
+}
+
+
 void RoutesTab::showTableContextMenu(QPoint position)
 {
-    tableContextMenu->removeAction(editRouteMenuAction);
+    tableContextMenu->removeAction(addBasedRouteMenuAction);
+    tableContextMenu->removeAction(actRouteMenuAction);
+    tableContextMenu->removeAction(deactRouteMenuAction);
     QItemSelectionModel *select = table->selectionModel();
     if(select->hasSelection()) {
-        tableContextMenu->addAction(editRouteMenuAction);
+        tableContextMenu->addAction(addBasedRouteMenuAction);
+        tableContextMenu->addAction(actRouteMenuAction);
+        tableContextMenu->addAction(deactRouteMenuAction);
     }
 
     QPoint formPos = table->viewport()->mapToGlobal(position);
@@ -458,7 +489,7 @@ TransportationsTab::TransportationsTab(DataBase *db)
     addTranspMenuAction = new QAction("Добавить перевозку", this);
     tableContextMenu->addAction(addTranspMenuAction);
     connect(addTranspMenuAction, &QAction::triggered,
-            this, &TransportationsTab::requestAddTransportation);
+            this, &TransportationsTab::addBlankTransportation);
 
     successTranspMenuAction = new QAction("Завершить перевозку", this);
     tableContextMenu->addAction(successTranspMenuAction);
@@ -479,24 +510,30 @@ TransportationsTab::TransportationsTab(DataBase *db)
 }
 
 
+void TransportationsTab::addBlankTransportation()
+{
+    emit requestAddTransportation(this);
+}
+
+
 void TransportationsTab::successTransportation()
 {
     db->successTranspQuery(selectedID());
-    TransportationsTab::resetQueryModel();
+    resetQueryModel();
 }
 
 
 void TransportationsTab::cancelTransportation()
 {
     db->cancelTranspQuery(selectedID());
-    TransportationsTab::resetQueryModel();
+    resetQueryModel();
 }
 
 
 void TransportationsTab::reopenTransportation()
 {
     db->reopenTranspQuery(selectedID());
-    TransportationsTab::resetQueryModel();
+    resetQueryModel();
 }
 
 
@@ -587,9 +624,10 @@ void DriverDetailTab::close()
 
 //==============================================================================
 
-AddRouteTab::AddRouteTab(DataBase *db)
+AddRouteTab::AddRouteTab(DataBase *db, int baseID)
 {
     this->db = db;
+    this->baseRouteID = baseID;
 
     QFormLayout *tabLayout = new QFormLayout(this);
 
@@ -606,7 +644,7 @@ AddRouteTab::AddRouteTab(DataBase *db)
     toEdit = new QLineEdit("");
     tabLayout->addRow("Куда", toEdit);
 
-    lengthSpin = new QDoubleSpinBox();
+    lengthSpin = new QSpinBox();
     lengthSpin->setRange(0, 9999);
     tabLayout->addRow("Длина (км)", lengthSpin);
 
@@ -634,6 +672,34 @@ AddRouteTab::AddRouteTab(DataBase *db)
     QSpacerItem *verticalSpacer_2 = new QSpacerItem
         (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_2);
+
+    if(baseRouteID != 0) {
+        fillFromBaseRoute();
+    }
+}
+
+
+void AddRouteTab::fillFromBaseRoute()
+{
+    QString name;
+    QString start;
+    QString end;
+    int length;
+    QString details;
+    int client_price;
+    int driver_fee;
+
+    QSqlQuery query = db->routeByIdQuery(baseRouteID);
+    db->parseRoute(query, name, start, end, length, details,
+                   client_price, driver_fee);
+
+    routeNameEdit->setText(name);
+    fromEdit->setText(start);
+    toEdit->setText(end);
+    lengthSpin->setValue(length);
+    descriptionEdit->setText(details);
+    priceSpin->setValue(client_price);
+    driverFeeSpin->setValue(driver_fee);
 }
 
 
@@ -644,78 +710,19 @@ void AddRouteTab::addRoute()
     QString end = toEdit->text();
     int length = lengthSpin->value();
     QString details = descriptionEdit->text();
-    int clientPrice = priceSpin->value();
-    int driverFee = driverFeeSpin->value();
+    int client_price = priceSpin->value();
+    int driver_fee = driverFeeSpin->value();
 
     QSqlQuery query;
     query = db->addRouteQuery(name, start, end, length, details,
-                              clientPrice, driverFee);
+                              client_price, driver_fee);
+
+    emit requestUpdateTable();
     close();
 }
 
 
 void AddRouteTab::close()
-{
-    deleteLater();
-}
-
-//==============================================================================
-
-EditRouteTab::EditRouteTab(DataBase *db)
-{
-    this->db = db;
-
-    QFormLayout *tabLayout = new QFormLayout(this);
-
-    QSpacerItem *verticalSpacer_1 = new QSpacerItem
-        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
-    tabLayout->addItem(verticalSpacer_1);
-
-    routeNameEdit = new QLineEdit;
-    tabLayout->addRow("Название", routeNameEdit);
-
-    fromEdit = new QLineEdit;
-    tabLayout->addRow("Откуда", fromEdit);
-
-    toEdit = new QLineEdit;
-    tabLayout->addRow("Куда", toEdit);
-
-    lengthSpin = new QDoubleSpinBox;
-    tabLayout->addRow("Длина (км)", lengthSpin);
-
-    priceSpin = new QSpinBox();
-    priceSpin->setRange(0, 9999);
-    tabLayout->addRow("Цена для клиента (руб)", priceSpin);
-
-    driverFeeSpin = new QSpinBox();
-    driverFeeSpin->setRange(0, 9999);
-    tabLayout->addRow("Оплата водителю (руб)", driverFeeSpin);
-
-    descriptionEdit = new QLineEdit;
-    tabLayout->addRow("Описание", descriptionEdit);
-
-    confirmButton = new QPushButton("Сохранить изменения");
-    tabLayout->addRow(confirmButton);
-    connect(confirmButton, &QPushButton::clicked,
-            this, &EditRouteTab::editRoute);
-
-    cancelButton = new QPushButton("Отмена");
-    tabLayout->addRow(cancelButton);
-    connect(cancelButton, &QPushButton::clicked,
-            this, &EditRouteTab::close);
-
-    QSpacerItem *verticalSpacer_2 = new QSpacerItem
-        (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
-    tabLayout->addItem(verticalSpacer_2);
-}
-
-
-void EditRouteTab::editRoute()
-{
-}
-
-
-void EditRouteTab::close()
 {
     deleteLater();
 }
@@ -777,11 +784,6 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 
 void AddTransportationTab::addTransportation()
 {
-    int firstDriverID;
-    int firstDriverBonus;
-    int secondDriverID;
-    int secondDriverBonus;
-    int route;
 }
 
 

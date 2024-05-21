@@ -27,6 +27,30 @@
 #include "database.h"
 
 
+class GeneralizedListTab : public QWidget
+{
+    Q_OBJECT
+
+public:
+    GeneralizedListTab(DataBase *db);
+
+public slots:
+    virtual void showTableContextMenu(QPoint position);
+    virtual void resetQueryModel() = 0;
+
+protected:
+    DataBase *db;
+    QFormLayout *tabLayout;
+    QTableView *table;
+    QSqlQueryModel *tableModel;
+    QMenu *tableContextMenu;
+    QAction *updateTableAction;
+
+    int selectedID();
+
+};
+
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -42,9 +66,8 @@ public slots:
     void openTabsForDriver();
     void openTabsForAccounter();
     void openDriverDetailTab(int userID);
-    void openAddRouteTab();
-    void openEditRouteTab();
-    void openAddTransportationTab();
+    void openAddRouteTab(GeneralizedListTab *requester, int baseRouteID = 0);
+    void openAddTransportationTab(GeneralizedListTab *requester);
 
 private:
     QWidget *central;
@@ -55,33 +78,6 @@ private:
     void addTab(QWidget *tab, const QString &tabname);
     void resetTabs();
 };
-
-
-class GeneralizedListTab : public QWidget
-{
-    Q_OBJECT
-
-public:
-    GeneralizedListTab(DataBase *db);
-
-public slots:
-    virtual void showTableContextMenu(QPoint position);
-    virtual void resetQueryModel() = 0;
-
-signals:
-    void requestUpdateTable();
-
-protected:
-    DataBase *db;
-    QFormLayout *tabLayout;
-    QTableView *table;
-    QSqlQueryModel *tableModel;
-    QMenu *tableContextMenu;
-    QAction *updateTableAction;
-
-    int selectedID();
-
- };
 
 
 class LoginTab : public QWidget
@@ -190,14 +186,20 @@ public:
 public slots:
     void resetQueryModel();
     void showTableContextMenu(QPoint position);
+    void addBlankRoute();
+    void addBasedOnSelectedRoute();
+    void activateRoute();
+    void deactivateRoute();
 
 signals:
-    void requestAddRoute();
-    void requestEditRoute();
+    void requestAddRoute(RoutesTab *requester);
+    void requestAddBasedRoute(RoutesTab *requester, int baseRouteID);
 
 private:
     QAction *addRouteMenuAction;
-    QAction *editRouteMenuAction;
+    QAction *addBasedRouteMenuAction;
+    QAction *actRouteMenuAction;
+    QAction *deactRouteMenuAction;
 };
 
 
@@ -210,12 +212,13 @@ public:
 
 public slots:
     void resetQueryModel();
+    void addBlankTransportation();
     void successTransportation();
     void cancelTransportation();
     void reopenTransportation();
 
 signals:
-    void requestAddTransportation();
+    void requestAddTransportation(TransportationsTab *requester);
 
 private:
     QAction *addTranspMenuAction;
@@ -253,46 +256,27 @@ class AddRouteTab : public QWidget
     Q_OBJECT
 
 public:
-    AddRouteTab(DataBase *db);
+    AddRouteTab(DataBase *db, int baseID = 0);
 
 public slots:
+    void fillFromBaseRoute();
     void addRoute();
     void close();
 
+signals:
+    void requestUpdateTable();
+
 private:
+    int baseRouteID;
     DataBase *db;
     QLineEdit *routeNameEdit;
     QLineEdit *fromEdit;
     QLineEdit *toEdit;
-    QDoubleSpinBox *lengthSpin;
+    QSpinBox *lengthSpin;
     QSpinBox *priceSpin;
     QSpinBox *driverFeeSpin;
     QLineEdit *descriptionEdit;
     QPushButton *addRouteButton;
-    QPushButton *cancelButton;
-};
-
-
-class EditRouteTab : public QWidget
-{
-    Q_OBJECT
-
-public:
-    EditRouteTab(DataBase *db);
-
-public slots:
-    void editRoute();
-    void close();
-
-private:
-    DataBase *db;
-    QLineEdit *routeNameEdit;
-    QLineEdit *fromEdit;
-    QLineEdit *toEdit;
-    QDoubleSpinBox *lengthSpin;
-    QSpinBox *priceSpin;
-    QLineEdit *descriptionEdit;
-    QPushButton *confirmButton;
     QPushButton *cancelButton;
 };
 
@@ -307,6 +291,9 @@ public:
 public slots:
     void addTransportation();
     void close();
+
+signals:
+    void requestUpdateTable();
 
 private:
     DataBase *db;
