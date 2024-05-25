@@ -52,13 +52,13 @@ CREATE TABLE drv_transp (
 INSERT INTO users
     (fired, role, login, hash, surname, name, patronim, phone, details)
 VALUES
-    (false, 'logist', 'logist1', '', 'Первый', 'Логист', 'С отчеством', '+79998887766', NULL),
-    (false, 'logist', 'logist2', '', 'Второй', 'Логист', NULL, '+79998887765', NULL),
-    (true, 'logist', 'logist3', '', 'Третий', 'Логист', 'Уволен', '+79998887764', NULL),
-    (false, 'driver', 'driver1', '', 'Первый', 'Водитель', 'С отчеством', '+79998887763', 'Пьёт'),
-    (false, 'driver', 'driver2', '', 'Второй', 'Водитель', 'С отчеством', '+79998887762', 'Не пьёт'),
-    (false, 'driver', 'driver3', '', 'Третий', 'Водитель', 'С отчеством', '+79998887762', 'Ест'),
-    (false, 'accounter', 'accounter1', '', 'Первый', 'Бухгалтер', 'С отчеством', '+79998887761', NULL)
+    (false, 'logist', 'logist1', MD5('logist'), 'Полудвурельсов', 'Апостол', 'Коромыслович', '+79998887766', NULL),
+    (false, 'logist', 'logist2', MD5('logist'), 'Семиколенов', 'Копипаст', NULL, '+79998887765', NULL),
+    (true, 'logist', 'logist3', MD5('logist'), 'Стариков', 'Миокардит', 'Самозамесович', '+79998887764', NULL),
+    (false, 'driver', 'driver1', MD5('driver'), 'Петров', 'Пётр', 'Петрович', '+79998887763', 'Пьёт'),
+    (false, 'driver', 'driver2', MD5('driver'), 'Сидоров', 'Семён', 'Иванович', '+79998887762', 'Не пьёт'),
+    (false, 'driver', 'driver3', MD5('driver'), 'Потапов', 'Феоклист', 'Иродович', '+79998887762', 'Ест'),
+    (false, 'accounter', 'accounter1', MD5('accounter'), 'Иванов', 'Арсений', 'Полукардович', '+79998887761', NULL)
 ;
 
 INSERT INTO drv_exp

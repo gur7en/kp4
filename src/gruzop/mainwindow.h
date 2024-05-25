@@ -4,7 +4,10 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QMenu>
+#include <QDebug>
 #include <QSqlQueryModel>
+#include <QSqlRecord>
+#include <QIdentityProxyModel>
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
@@ -27,6 +30,9 @@
 #include "database.h"
 
 
+#define PASSWORD_MIN_LEN 5
+
+
 class GeneralizedListTab : public QWidget
 {
     Q_OBJECT
@@ -42,7 +48,7 @@ protected:
     DataBase *db;
     QFormLayout *tabLayout;
     QTableView *table;
-    QSqlQueryModel *tableModel;
+    QueryModel *tableModel;
     QMenu *tableContextMenu;
     QAction *updateTableAction;
 
@@ -125,6 +131,7 @@ private:
 
 private slots:
     void logoutPressed();
+    void changePasswordPressed();
 };
 
 
@@ -246,7 +253,6 @@ private:
     QDateEdit *toDate;
     QPushButton *confirmPeriodButton;
     QLineEdit *userEditRO;
-    QLineEdit *salaryForPeriodRO;
     QPushButton *closeButton;
 };
 
@@ -297,6 +303,9 @@ signals:
 
 private:
     DataBase *db;
+    QueryModel *driversFirstModel;
+    QueryModel *driversSecondModel;
+    QueryModel *routesModel;
     QComboBox *firstDriverCombo;
     QSpinBox *firstDriverBonusSpin;
     QComboBox *secondDriverCombo;
@@ -304,6 +313,7 @@ private:
     QComboBox *routeCombo;
     QPushButton *addTranspButton;
     QPushButton *cancelButton;
+
 };
 
 #endif // MAINWINDOW_H

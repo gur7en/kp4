@@ -136,7 +136,7 @@ GeneralizedListTab::GeneralizedListTab(DataBase *db)
 
     tabLayout = new QFormLayout(this);
 
-    tableModel = new QSqlQueryModel;
+    tableModel = new QueryModel;
 
     table = new QTableView;
     table->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -164,9 +164,7 @@ void GeneralizedListTab::showTableContextMenu(QPoint position)
 
 int GeneralizedListTab::selectedID()
 {
-    QItemSelectionModel *select = table->selectionModel();
-    QModelIndex index = select->currentIndex();
-    return index.sibling(index.row(), 0).data().toInt();
+    return table->selectionModel()->currentIndex().data(Qt::UserRole).toInt();
 }
 
 //==============================================================================
@@ -207,8 +205,8 @@ void LoginTab::loginPressed()
     UserRole::Code role;
     role = db->login(username, password);
 
+    QMessageBox msgBox;
     if(role == UserRole::Unlogin) {
-        QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Введён неверный логин или пароль!");
         msgBox.setInformativeText(
@@ -221,7 +219,6 @@ void LoginTab::loginPressed()
         msgBox.exec();
         return;
     } else if(role == UserRole::Unknown) {
-        QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Critical);
         msgBox.setText("Неизвестный тип учётной записи!");
         msgBox.setInformativeText("Свяжитесь с администратором системы.");
@@ -311,6 +308,8 @@ ProfileTab::ProfileTab(DataBase *db)
 
     changePasswordButton = new QPushButton("Сменить пароль");
     tabLayout->addRow(changePasswordButton);
+    connect(changePasswordButton, &QPushButton::clicked,
+            this, &ProfileTab::changePasswordPressed);
 
     QSpacerItem *verticalSpacer_2 = new QSpacerItem
         (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -321,6 +320,39 @@ ProfileTab::ProfileTab(DataBase *db)
 void ProfileTab::logoutPressed()
 {
     emit userLogout();
+}
+
+
+void ProfileTab::changePasswordPressed()
+{
+    QString old_password = oldPasswordEdit->text();
+    QString new_password = newPasswordEdit->text();
+
+    QMessageBox msgBox;
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    if(!db->checkPasswordCurrentUser(old_password)) {
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Текущий пароль введён неверно!");
+    } else if(new_password.length() < PASSWORD_MIN_LEN) {
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Новый пароль слишком короткий!");
+        QString message = "Пароль должен содержать не менее %1 символов.";
+        message = message.arg(PASSWORD_MIN_LEN);
+        msgBox.setInformativeText(message);
+    } else if(new_password != repeatPasswordEdit->text()) {
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Новый пароль должен совпадать в обоих полях!");
+    } else if(!db->changePasswordCurrentUser(new_password)) {
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Не удалось изменить пароль.\n"
+                       "Повторите попытку позднее."
+                       );
+    } else {
+        msgBox.setIcon(QMessageBox::Information);
+        msgBox.setText("Пароль успешно изменён.");
+    }
+    msgBox.exec();
 }
 
 //==============================================================================
@@ -380,7 +412,6 @@ void LogistsTab::resetQueryModel()
 {
     tableModel->setQuery(db->usersQuery(UserRole::Logist));
     table->resizeColumnsToContents();
-    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -398,7 +429,6 @@ void AccountersTab::resetQueryModel()
 {
     tableModel->setQuery(db->usersQuery(UserRole::Accounter));
     table->resizeColumnsToContents();
-    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -476,7 +506,6 @@ void RoutesTab::resetQueryModel()
 {
     tableModel->setQuery(db->routesQueryAll());
     table->resizeColumnsToContents();
-    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -541,7 +570,6 @@ void TransportationsTab::resetQueryModel()
 {
     tableModel->setQuery(db->transpQuery());
     table->resizeColumnsToContents();
-    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -561,7 +589,6 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
 
     QLabel *setPeriodLabel = new QLabel("Либо задайте его вручную");
     tabLayout->addRow(setPeriodLabel);
-    */
 
     QLabel *setPeriodLabel = new QLabel("Задайте период");
     tabLayout->addRow(setPeriodLabel);
@@ -578,6 +605,7 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
     QFrame *line_1 = new QFrame();
     line_1->setFrameShape(QFrame::HLine);
     tabLayout->addRow(line_1);
+    */
 
     if(closable) {
         userEditRO = new QLineEdit;
@@ -588,15 +616,11 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
         userEditRO = nullptr;
     }
 
-    tabLayout->addRow(table);
-
-    salaryForPeriodRO = new QLineEdit;
-    salaryForPeriodRO->setReadOnly(true);
-    tabLayout->addRow("Сумма за период", salaryForPeriodRO);
-
     QLabel *disregardLabel =
         new QLabel("Перевозки \"В работе\" при подсчёте не учитываются!");
     tabLayout->addRow(disregardLabel);
+
+    tabLayout->addRow(table);
 
     if(closable) {
         closeButton = new QPushButton("Закрыть");
@@ -613,7 +637,6 @@ void DriverDetailTab::resetQueryModel()
 {
     tableModel->setQuery(db->driverTranspQuery(userID));
     table->resizeColumnsToContents();
-    table->setColumnHidden(0, true);
 }
 
 
@@ -735,11 +758,21 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 
     QFormLayout *tabLayout = new QFormLayout(this);
 
+    driversFirstModel = new QueryModel;
+    driversFirstModel->setQuery(db->usersListQuery(UserRole::Driver, false));
+
+    driversSecondModel = new QueryModel;
+    driversSecondModel->setQuery(db->usersListQuery(UserRole::Driver, true));
+
+    routesModel = new QueryModel;
+    routesModel->setQuery(db->routesListQuery());
+
     QSpacerItem *verticalSpacer_1 = new QSpacerItem
         (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
     tabLayout->addItem(verticalSpacer_1);
 
     firstDriverCombo = new QComboBox;
+    firstDriverCombo->setModel(driversFirstModel);
     tabLayout->addRow("Водитель", firstDriverCombo);
 
     firstDriverBonusSpin = new QSpinBox;
@@ -750,6 +783,7 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
     tabLayout->addRow(line_1);
 
     secondDriverCombo = new QComboBox;
+    secondDriverCombo->setModel(driversSecondModel);
     tabLayout->addRow("Второй водитель", secondDriverCombo);
 
     secondDriverBonusSpin = new QSpinBox;
@@ -760,6 +794,7 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
     tabLayout->addRow(line_2);
 
     routeCombo = new QComboBox;
+    routeCombo->setModel(routesModel);
     tabLayout->addRow("Маршрут", routeCombo);
 
     QFrame *line_3 = new QFrame();
@@ -784,6 +819,19 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 
 void AddTransportationTab::addTransportation()
 {
+    int firstID = firstDriverCombo->currentData().toInt();
+    int first_bonus = firstDriverBonusSpin->value();
+    int secondID = secondDriverCombo->currentData().toInt();
+    int second_bonus = secondDriverBonusSpin->value();
+    int routeID = routeCombo->currentData().toInt();
+
+    QSqlQuery query;
+    query = db->addTranspQuery(routeID,
+                               firstID, first_bonus,
+                               secondID, second_bonus);
+
+    emit requestUpdateTable();
+    close();
 }
 
 

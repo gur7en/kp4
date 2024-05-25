@@ -1,5 +1,30 @@
 #include "database.h"
 
+
+QVariant QueryModel::data(const QModelIndex &item, int role) const
+{
+    QVariant result;
+
+    switch(role) {
+    case Qt::UserRole:
+        result = query().value("id").toInt();
+        break;
+    default:
+        result = QSqlQueryModel::data(item, role);
+        break;
+    }
+
+    return result;
+}
+
+
+void QueryModel::setQuery(QSqlQuery &&query)
+{
+    QSqlQueryModel::setQuery(std::move(query));
+    removeColumn(record().indexOf("id"));
+}
+
+
 DataBase::DataBase(QObject *parent)
     : QObject{parent}
 {
@@ -26,13 +51,16 @@ UserRole::Code DataBase::login(const QString &username, const QString &password)
 {
     UserRole::Code result = UserRole::Unlogin;
 
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(password.toUtf8());
+
     QSqlQuery query(db);
     query.prepare("SELECT id, role FROM users "
                   "WHERE login = :login AND hash = :hash "
                   "AND fired = false ;"
                   );
     query.bindValue(":login", username);
-    query.bindValue(":hash", password);
+    query.bindValue(":hash", QString(hash.result().toHex()));
 
     bool success = query.exec();
 
@@ -128,6 +156,67 @@ QString DataBase::userShortName(int id)
 }
 
 
+bool DataBase::checkPasswordCurrentUser(QString &password)
+{
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(password.toUtf8());
+
+    QString str_query;
+    str_query += "SELECT EXISTS ( "
+                 "    SELECT id "
+                 "    FROM users "
+                 "    WHERE id = :id AND hash = :hash "
+                 ")"
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", currentUserID);
+    query.bindValue(":hash", QString(hash.result().toHex()));
+
+    bool success = query.exec();
+
+    if(success) {
+        success = !query.lastError().isValid();
+    }
+
+    if(success) {
+        query.next();
+        success = (query.value(0).toString() == "true");
+    }
+
+    return success;
+}
+
+
+bool DataBase::changePasswordCurrentUser(QString &new_password)
+{
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(new_password.toUtf8());
+
+    QString str_query;
+    str_query += "UPDATE users "
+                 "SET hash = :hash "
+                 "WHERE id = :id "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":id", currentUserID);
+    query.bindValue(":hash", QString(hash.result().toHex()));
+
+    bool success = query.exec();
+
+    if(success) {
+        success = !query.lastError().isValid();
+    }
+
+    return success;
+}
+
+
 QSqlQuery DataBase::usersQuery(UserRole::Code role_code)
 {
     UserRole role(role_code);
@@ -159,6 +248,47 @@ QSqlQuery DataBase::usersQuery(UserRole::Code role_code)
 }
 
 
+QSqlQuery DataBase::usersListQuery(UserRole::Code role_code, bool with_empty)
+{
+    UserRole role(role_code);
+    QString str_query;
+
+    if(with_empty) {
+        str_query += "SELECT * "
+                     "FROM ( "
+                     "SELECT"
+                     "    0 AS id, "
+                     "    '<Никто не выбран>' AS name "
+                     ") UNION ( "
+            ;
+    }
+
+    str_query += "SELECT "
+                 "    id, "
+                 "    getFullName(id) AS name "
+                 "FROM "
+                 "    users "
+                 "WHERE "
+                 "    role = :role "
+        ;
+
+    if(with_empty) {
+        str_query += ") "
+            ;
+    }
+
+    str_query += ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":role", role.toString());
+    query.exec();
+
+    return query;
+}
+
+
 QSqlQuery DataBase::routesQuery()
 {
     QString str_query;
@@ -177,6 +307,38 @@ QSqlQuery DataBase::routesQuery()
                  "    start_point,"
                  "    end_point, "
                  "    name "
+                 ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.exec();
+
+    return query;
+}
+
+
+QSqlQuery DataBase::routesListQuery()
+{
+    QString str_query;
+    str_query += "SELECT "
+                 "    id, "
+                 "    CONCAT( "
+                 "        name, "
+                 "        ' (', "
+                 "        start_point, "
+                 "        ' -> ', "
+                 "        end_point, "
+                 "        ', ', "
+                 "        len, ' км', "
+                 "        ')' "
+                 "    ) "
+                 "FROM routes "
+                 "WHERE active = true "
+                 "ORDER BY "
+                 "    name, "
+                 "    start_point, "
+                 "    end_point "
                  ";"
         ;
 
@@ -394,26 +556,76 @@ QSqlQuery DataBase::transpQuery()
 }
 
 
+QSqlQuery DataBase::addTranspQuery(int route,
+                                   int first_driver, int first_driver_bonus,
+                                   int second_driver, int second_driver_bonus)
+{
+    QString str_query;
+    str_query = "INSERT INTO transportations "
+                "    (status, route, start_time, end_time) "
+                "VALUES "
+                "    (0, :route, Now(), NULL) "
+                "RETURNING id "
+                ";"
+        ;
+
+    QSqlQuery query(db);
+    query.prepare(str_query);
+    query.bindValue(":route", route);
+
+    bool success;
+    success = query.exec();
+
+    if(success) {
+        query.next();
+        success = !query.value(0).isNull();
+    }
+
+    int new_transp = 0;
+    if(success) {
+        new_transp = query.value("id").toInt();
+    } else {
+        return query;
+    }
+
+    str_query = "INSERT INTO drv_transp "
+                "    (transp, driver, driver_number, driver_bonus) "
+                "VALUES "
+                "    (:new_transp, :first_driver, 1, :first_driver_bonus) "
+        ;
+
+    if(second_driver != 0 && first_driver != second_driver) {
+        str_query += "  , (:new_transp, :second_driver, 2, :second_driver_bonus) "
+                     ";"
+            ;
+    }
+
+    query.prepare(str_query);
+    query.bindValue(":new_transp", new_transp);
+    query.bindValue(":first_driver", first_driver);
+    query.bindValue(":second_driver", second_driver);
+    query.bindValue(":first_driver_bonus", first_driver_bonus);
+    query.bindValue(":second_driver_bonus", second_driver_bonus);
+    query.exec();
+
+    return query;
+}
+
+
 QSqlQuery DataBase::driverTranspQuery(int id)
 {
     QString str_query;
-    str_query += "SELECT "
+    str_query += "WITH temp AS ( "
+                 "SELECT "
                  "    tr.id AS id, "
-                 "    CASE "
-                 "        WHEN tr.status = 0 THEN "
-                 "            'В работе' "
-                 "        WHEN tr.status = 1 THEN "
-                 "            'Завершено' "
-                 "        WHEN tr.status = 2 THEN "
-                 "            'Отменено' "
-                 "        ELSE "
-                 "            'Неизвестно' "
-                 "        END Статус, "
+                 "    tr.status AS Статус, "
                  "    tr.start_time AS Начато, "
                  "    tr.end_time AS Завершено, "
                  "    routes.start_point AS Откуда, "
                  "    routes.end_point AS Куда, "
-                 "    routes.drv_fee_base + drv_transp.driver_bonus AS Плата "
+                 "    routes.drv_fee_base AS База, "
+                 "    drv_transp.driver_bonus AS Бонус, "
+                 "    routes.drv_fee_base + drv_transp.driver_bonus AS Сумма "
                  "FROM transportations tr "
                  "JOIN routes "
                  "    ON tr.route = routes.id "
@@ -428,6 +640,35 @@ QSqlQuery DataBase::driverTranspQuery(int id)
                  "    tr.start_time,"
                  "    tr.end_time, "
                  "    routes.name "
+                 ") ("
+                 "SELECT "
+                 "    id, "
+                 "    CASE "
+                 "        WHEN Статус = 0 THEN "
+                 "            'В работе' "
+                 "        WHEN Статус = 1 THEN "
+                 "            'Завершено' "
+                 "        WHEN Статус = 2 THEN "
+                 "            'Отменено' "
+                 "        ELSE "
+                 "            'Неизвестно' "
+                 "    END Статус, "
+                 "    Начато, Завершено, "
+                 "    Откуда,  Куда, "
+                 "    База, Бонус, "
+                 "    Сумма "
+                 "FROM temp "
+                 ") UNION ("
+                 "SELECT "
+                 "    NULL AS id,"
+                 "    'Итого' AS Статус, "
+                 "    NULL AS Начато, NULL AS Завершено, "
+                 "    NULL AS Откуда, NULL AS Куда, "
+                 "    SUM(База) AS База, SUM(Бонус) AS Бонус, "
+                 "    SUM(Сумма) AS Сумма "
+                 "FROM temp "
+                 "WHERE Статус != 0 "
+                 ") "
                  ";"
         ;
 
@@ -509,3 +750,5 @@ QSqlQuery DataBase::reopenTranspQuery(int id)
 
     return query;
 }
+
+
