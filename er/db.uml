@@ -8,7 +8,7 @@ entity "Users" as users {
     fired : bool
     role : string
     login : string
-    hash : binary
+    hash : string
     surname : string
     name : string
     patronim : string <<NULL>>
@@ -17,7 +17,7 @@ entity "Users" as users {
 }
 
 entity "Drivers expirience" as drv_exp {
-    *driver : ID <<FK>>
+    *driver : ID <<ref Users(id)>>
     --
     experience : int
 }
@@ -29,8 +29,8 @@ entity "Routes" as routes {
     active : bool
     start_point : string
     end_point : string
-    length : int
-    details : string
+    len : int
+    details : string <<NULL>>
     client_price : money
     driver_fee_base : money
 }
@@ -39,15 +39,16 @@ entity "Transportations" as transps {
     *id : ID <<generated>>
     --
     status : int
-    route : ID <<FK>>
-    start_time : time
-    end_time : time
+    route : ID <<ref Routes(id)>>
+    start_time : timestamp
+    end_time : timestamp
 }
 
 entity "Drivers for transportation" as drv_transp {
-    *transp : ID <<FK>>
+    *transp : ID <<ref Transportations(id)>>
     --
-    driver : ID <<FK>>
+    driver : ID <<ref Users(id)>>
+    driver_number : int
     driver_bonus : money
 }
 

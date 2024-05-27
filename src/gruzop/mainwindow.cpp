@@ -109,28 +109,28 @@ void MainWindow::openDriverDetailTab(int userID)
 }
 
 
-void MainWindow::openAddRouteTab(GeneralizedListTab *requester, int baseRouteID)
+void MainWindow::openAddRouteTab(GeneralizedTableTab *requester, int baseRouteID)
 {
     AddRouteTab *tab = new AddRouteTab(db, baseRouteID);
     addTab(tab, "Добавление маршрута");
     tabWidget->setCurrentWidget(tab);
     connect(tab, &AddRouteTab::requestUpdateTable,
-            requester, &GeneralizedListTab::resetQueryModel);
+            requester, &GeneralizedTableTab::resetQueryModel);
 }
 
 
-void MainWindow::openAddTransportationTab(GeneralizedListTab *requester)
+void MainWindow::openAddTransportationTab(GeneralizedTableTab *requester)
 {
     AddTransportationTab *tab = new AddTransportationTab(db);
     addTab(tab, "Добавление перевозки");
     tabWidget->setCurrentWidget(tab);
     connect(tab, &AddTransportationTab::requestUpdateTable,
-            requester, &GeneralizedListTab::resetQueryModel);
+            requester, &GeneralizedTableTab::resetQueryModel);
 }
 
 //==============================================================================
 
-GeneralizedListTab::GeneralizedListTab(DataBase *db)
+GeneralizedTableTab::GeneralizedTableTab(DataBase *db)
 {
     this->db = db;
 
@@ -144,25 +144,25 @@ GeneralizedListTab::GeneralizedListTab(DataBase *db)
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setModel(tableModel);
     connect(table, &QTableView::customContextMenuRequested,
-            this, &GeneralizedListTab::showTableContextMenu);
+            this, &GeneralizedTableTab::showTableContextMenu);
 
     tableContextMenu = new QMenu;
 
     updateTableAction = new QAction("Обновить", this);
     tableContextMenu->addAction(updateTableAction);
     connect(updateTableAction, &QAction::triggered,
-            this, &GeneralizedListTab::resetQueryModel);
+            this, &GeneralizedTableTab::resetQueryModel);
 }
 
 
-void GeneralizedListTab::showTableContextMenu(QPoint position)
+void GeneralizedTableTab::showTableContextMenu(QPoint position)
 {
     QPoint formPos = table->viewport()->mapToGlobal(position);
     tableContextMenu->popup(formPos);
 }
 
 
-int GeneralizedListTab::selectedID()
+int GeneralizedTableTab::selectedID()
 {
     return table->selectionModel()->currentIndex().data(Qt::UserRole).toInt();
 }
@@ -358,7 +358,7 @@ void ProfileTab::changePasswordPressed()
 //==============================================================================
 
 DriversTab::DriversTab(DataBase *db)
-    : GeneralizedListTab(db)
+    : GeneralizedTableTab(db)
 {
     tabLayout->addWidget(table);
 
@@ -400,7 +400,7 @@ void DriversTab::resetQueryModel()
 //==============================================================================
 
 LogistsTab::LogistsTab(DataBase *db)
-    : GeneralizedListTab(db)
+    : GeneralizedTableTab(db)
 {
     tabLayout->addWidget(table);
 
@@ -417,7 +417,7 @@ void LogistsTab::resetQueryModel()
 //==============================================================================
 
 AccountersTab::AccountersTab(DataBase *db)
-    : GeneralizedListTab(db)
+    : GeneralizedTableTab(db)
 {
     tabLayout->addWidget(table);
 
@@ -434,7 +434,7 @@ void AccountersTab::resetQueryModel()
 //==============================================================================
 
 RoutesTab::RoutesTab(DataBase *db)
-    : GeneralizedListTab(db)
+    : GeneralizedTableTab(db)
 {
     tabLayout->addWidget(table);
 
@@ -511,7 +511,7 @@ void RoutesTab::resetQueryModel()
 //==============================================================================
 
 TransportationsTab::TransportationsTab(DataBase *db)
-    : GeneralizedListTab(db)
+    : GeneralizedTableTab(db)
 {
     tabLayout->addWidget(table);
 
@@ -575,7 +575,7 @@ void TransportationsTab::resetQueryModel()
 //==============================================================================
 
 DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
-    : GeneralizedListTab(db)
+    : GeneralizedTableTab(db)
 {
     if(id == 0) {
         id = db->userID();

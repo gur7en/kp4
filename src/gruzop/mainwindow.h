@@ -33,12 +33,12 @@
 #define PASSWORD_MIN_LEN 5
 
 
-class GeneralizedListTab : public QWidget
+class GeneralizedTableTab : public QWidget
 {
     Q_OBJECT
 
 public:
-    GeneralizedListTab(DataBase *db);
+    GeneralizedTableTab(DataBase *db);
 
 public slots:
     virtual void showTableContextMenu(QPoint position);
@@ -72,8 +72,8 @@ public slots:
     void openTabsForDriver();
     void openTabsForAccounter();
     void openDriverDetailTab(int userID);
-    void openAddRouteTab(GeneralizedListTab *requester, int baseRouteID = 0);
-    void openAddTransportationTab(GeneralizedListTab *requester);
+    void openAddRouteTab(GeneralizedTableTab *requester, int baseRouteID = 0);
+    void openAddTransportationTab(GeneralizedTableTab *requester);
 
 private:
     QWidget *central;
@@ -135,7 +135,7 @@ private slots:
 };
 
 
-class DriversTab : public GeneralizedListTab
+class DriversTab : public GeneralizedTableTab
 {
     Q_OBJECT
 
@@ -157,7 +157,7 @@ private:
  };
 
 
-class LogistsTab : public GeneralizedListTab
+class LogistsTab : public GeneralizedTableTab
 {
     Q_OBJECT
 
@@ -170,7 +170,7 @@ public slots:
 };
 
 
-class AccountersTab : public GeneralizedListTab
+class AccountersTab : public GeneralizedTableTab
 {
     Q_OBJECT
 
@@ -183,7 +183,7 @@ public slots:
 };
 
 
-class RoutesTab : public GeneralizedListTab
+class RoutesTab : public GeneralizedTableTab
 {
     Q_OBJECT
 
@@ -210,7 +210,7 @@ private:
 };
 
 
-class TransportationsTab : public GeneralizedListTab
+class TransportationsTab : public GeneralizedTableTab
 {
     Q_OBJECT
 
@@ -235,7 +235,7 @@ private:
 };
 
 
-class DriverDetailTab : public GeneralizedListTab
+class DriverDetailTab : public GeneralizedTableTab
 {
     Q_OBJECT
 

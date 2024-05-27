@@ -1,0 +1,154 @@
+@startuml
+
+scale 2
+
+' skinparam linetype ortho
+
+class DataBase {
+    + Constructor()
+    + bool reconnect()
+    + void disconnect()
+    + UserRole login(string username, string password)
+    + void logout()
+    + int userID()
+    + UserRole userRole()
+    + bool checkPassword(string password)
+    + bool changePassword(string new_password)
+    + QueryResult usersQuery(UserRole role_code)
+    + QueryResult routesQuery()
+    + QueryResult addRouteQuery()
+    + QueryResult activateRouteQuery(int id)
+    + QueryResult deactivateRouteQuery(int id)
+    + QueryResult transpQuery()
+    + QueryResult driverTranspQuery(int id)
+    + QueryResult addTranspQuery()
+    + QueryResult cancelTranspQuery(int id)
+    + QueryResult successTranspQuery(int id)
+    + QueryResult reopenTranspQuery(int id)
+
+    - int currentUserID
+    - UserRole currentUserRole
+
+}
+
+enum Code {
+    Unlogin
+    Unknown
+    Driver
+    Logist
+    Accounter
+}
+
+class UserRole {
+    + Constructor(Code code)
+    + string toString()
+    + Code toCode()
+    - Code code
+}
+
+class MainWindow {    
+    + Constructor(DataBase *db)
+    + void openLoginTab()
+    + void openProfileTab()
+    + void openTabsForLogist()
+    + void openTabsForDriver()
+    + void openTabsForAccounter()
+    + void openDriverDetailTab(int userID)
+    + void openAddRouteTab()
+    + void openAddTransportationTab()
+    - DataBase *db
+    - GeneralizedTab[] tabs
+    - void addTab(GeneralizedTab *tab, string name)
+    - void resetTabs()
+}
+
+abstract class GeneralizedTab {
+    - DataBase *db
+    + Constructor(DataBase *db)
+}
+
+class LoginTab {
+    + void login()
+}
+
+class ProfileTab {
+    + void changePassword()
+    + void logout()
+}
+
+abstract class GeneralizedTableTab {
+    - Table *table
+    + Constructor(DataBase *db)
+    + void showTableContextMenu()
+    + void selectedID()
+    + void //resetTable()//
+}
+
+class DriversTab {
+    + Constructor(DataBase *db)
+    + void //resetTable()//
+}
+
+class LogistsTab {
+    + Constructor(DataBase *db)
+    + void //resetTable()//
+}
+
+class AccountersTab {
+    + Constructor(DataBase *db)
+    + void //resetTable()//
+}
+
+class DriverDetailsTab {
+    + Constructor(DataBase *db)
+    + void //resetTable()//
+}
+
+class RoutesTab {
+    + Constructor(DataBase *db)
+    + void addRoute()
+    + void changeRouteStatus(int routeID, int new_status)
+    + void //resetTable()//
+}
+
+class TransportationsTab {
+    + Constructor(DataBase *db)
+    + void addTransportation()
+    + void changeTransportationStatus(int transpID, int new_status)
+    + void //resetTable()//
+}
+
+class AddRouteTab {
+    + Constructor(DataBase *db)
+    + void addRoute()
+    + void close()
+}
+
+class AddTransportationTab {
+    + Constructor(DataBase *db)
+    + void addTransportation()
+    + void close()
+}
+
+UserRole *-- Code
+DataBase o-left- UserRole
+MainWindow o-left- DataBase
+MainWindow o-- GeneralizedTab
+GeneralizedTab <|.left. LoginTab
+GeneralizedTab <|.right. ProfileTab
+GeneralizedTab <|.. AddRouteTab
+GeneralizedTab <|.. AddTransportationTab
+GeneralizedTab <|--- GeneralizedTableTab
+GeneralizedTableTab <|.. DriversTab
+GeneralizedTableTab <|.. LogistsTab
+GeneralizedTableTab <|.. AccountersTab
+GeneralizedTableTab <|.. DriverDetailsTab 
+GeneralizedTableTab <|.left. RoutesTab
+GeneralizedTableTab <|.right. TransportationsTab
+
+AddRouteTab -[hidden]- RoutesTab
+AddTransportationTab -[hidden]- TransportationsTab
+
+DriversTab -right[hidden]- DriverDetailsTab
+
+@enduml
