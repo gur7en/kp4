@@ -217,7 +217,7 @@ bool DataBase::changePasswordCurrentUser(QString &new_password)
 }
 
 
-QSqlQuery DataBase::usersQuery(UserRole::Code role_code)
+QSqlQuery DataBase::users(UserRole::Code role_code)
 {
     UserRole role(role_code);
     QString str_query;
@@ -248,7 +248,7 @@ QSqlQuery DataBase::usersQuery(UserRole::Code role_code)
 }
 
 
-QSqlQuery DataBase::usersListQuery(UserRole::Code role_code, bool with_empty)
+QSqlQuery DataBase::usersList(UserRole::Code role_code, bool with_empty)
 {
     UserRole role(role_code);
     QString str_query;
@@ -289,7 +289,7 @@ QSqlQuery DataBase::usersListQuery(UserRole::Code role_code, bool with_empty)
 }
 
 
-QSqlQuery DataBase::routesQuery()
+QSqlQuery DataBase::routes()
 {
     QString str_query;
     str_query += "SELECT "
@@ -318,7 +318,7 @@ QSqlQuery DataBase::routesQuery()
 }
 
 
-QSqlQuery DataBase::routesListQuery()
+QSqlQuery DataBase::routesList()
 {
     QString str_query;
     str_query += "SELECT "
@@ -386,7 +386,7 @@ QSqlQuery DataBase::routesQueryAll()
 }
 
 
-QSqlQuery DataBase::routeByIdQuery(int id)
+QSqlQuery DataBase::routeById(int id)
 {
     QString str_query;
     str_query += "SELECT "
@@ -431,10 +431,10 @@ void DataBase::parseRoute(QSqlQuery &query,
 }
 
 
-QSqlQuery DataBase::addRouteQuery(const QString &name,
-                                  const QString &start, const QString &end,
-                                  int length, const QString &details,
-                                  int client_price, int driver_fee_base)
+QSqlQuery DataBase::addRoute(const QString &name,
+                             const QString &start, const QString &end,
+                             int length, const QString &details,
+                             int client_price, int driver_fee_base)
 {
     QString str_query;
     str_query += "INSERT INTO routes "
@@ -463,7 +463,7 @@ QSqlQuery DataBase::addRouteQuery(const QString &name,
 }
 
 
-QSqlQuery DataBase::activateRouteQuery(int id)
+QSqlQuery DataBase::activateRoute(int id)
 {
     QString str_query;
     str_query += "UPDATE "
@@ -484,7 +484,7 @@ QSqlQuery DataBase::activateRouteQuery(int id)
 }
 
 
-QSqlQuery DataBase::deactivateRouteQuery(int id)
+QSqlQuery DataBase::deactivateRoute(int id)
 {
     QString str_query;
     str_query += "UPDATE "
@@ -505,45 +505,45 @@ QSqlQuery DataBase::deactivateRouteQuery(int id)
 }
 
 
-QSqlQuery DataBase::transpQuery()
+QSqlQuery DataBase::haulage()
 {
     QString str_query;
     str_query += "SELECT "
-                 "    tr.id AS id, "
+                 "    haulages.id AS id, "
                  "    CASE "
-                 "        WHEN tr.status = 0 THEN "
+                 "        WHEN haulages.status = 0 THEN "
                  "            'В работе' "
-                 "        WHEN tr.status = 1 THEN "
+                 "        WHEN haulages.status = 1 THEN "
                  "            'Завершено' "
-                 "        WHEN tr.status = 2 THEN "
+                 "        WHEN haulages.status = 2 THEN "
                  "            'Отменено' "
                  "        ELSE "
                  "            'Неизвестно' "
                  "        END Статус, "
-                 "    tr.start_time AS Начато, "
-                 "    tr.end_time AS Завершено, "
+                 "    haulages.start_time AS Начато, "
+                 "    haulages.end_time AS Завершено, "
                  "    routes.name AS Маршрут, "
                  "    routes.start_point AS Откуда, "
                  "    routes.end_point AS Куда, "
                  "    getShortName(du1.id) AS \"Водитель 1\", "
                  "    getShortName(du2.id) AS \"Водитель 2\" "
-                 "FROM transportations tr "
+                 "FROM haulages "
                  "JOIN routes "
-                 "    ON tr.route = routes.id "
-                 "JOIN drv_transp dt1 "
-                 "    ON dt1.transp = tr.id "
-                 "    AND dt1.driver_number = 1 "
+                 "    ON haulages.route = routes.id "
+                 "JOIN drv_haul dh1 "
+                 "    ON dh1.haulage = haulages.id "
+                 "    AND dh1.driver_number = 1 "
                  "JOIN users du1 "
-                 "    ON du1.id = dt1.driver "
-                 "LEFT JOIN drv_transp dt2 "
-                 "    ON dt2.transp = tr.id "
-                 "    AND dt2.driver_number = 2 "
+                 "    ON du1.id = dh1.driver "
+                 "LEFT JOIN drv_haul dh2 "
+                 "    ON dh2.haulage = haulages.id "
+                 "    AND dh2.driver_number = 2 "
                  "LEFT JOIN users du2 "
-                 "    ON du2.id = dt2.driver "
+                 "    ON du2.id = dh2.driver "
                  "ORDER BY "
-                 "    tr.status,"
-                 "    tr.start_time,"
-                 "    tr.end_time, "
+                 "    haulages.status,"
+                 "    haulages.start_time,"
+                 "    haulages.end_time, "
                  "    routes.name "
                  ";"
         ;
@@ -556,12 +556,12 @@ QSqlQuery DataBase::transpQuery()
 }
 
 
-QSqlQuery DataBase::addTranspQuery(int route,
-                                   int first_driver, int first_driver_bonus,
-                                   int second_driver, int second_driver_bonus)
+QSqlQuery DataBase::addHaulage(int route,
+                               int first_driver, int first_driver_bonus,
+                               int second_driver, int second_driver_bonus)
 {
     QString str_query;
-    str_query = "INSERT INTO transportations "
+    str_query = "INSERT INTO haulages "
                 "    (status, route, start_time, end_time) "
                 "VALUES "
                 "    (0, :route, Now(), NULL) "
@@ -581,27 +581,27 @@ QSqlQuery DataBase::addTranspQuery(int route,
         success = !query.value(0).isNull();
     }
 
-    int new_transp = 0;
+    int new_haulage = 0;
     if(success) {
-        new_transp = query.value("id").toInt();
+        new_haulage = query.value("id").toInt();
     } else {
         return query;
     }
 
-    str_query = "INSERT INTO drv_transp "
-                "    (transp, driver, driver_number, driver_bonus) "
+    str_query = "INSERT INTO drv_haul "
+                "    (haulage, driver, driver_number, driver_bonus) "
                 "VALUES "
-                "    (:new_transp, :first_driver, 1, :first_driver_bonus) "
+                "    (:new_haulage, :first_driver, 1, :first_driver_bonus) "
         ;
 
     if(second_driver != 0 && first_driver != second_driver) {
-        str_query += "  , (:new_transp, :second_driver, 2, :second_driver_bonus) "
+        str_query += "  , (:new_haulage, :second_driver, 2, :second_driver_bonus) "
                      ";"
             ;
     }
 
     query.prepare(str_query);
-    query.bindValue(":new_transp", new_transp);
+    query.bindValue(":new_haulage", new_haulage);
     query.bindValue(":first_driver", first_driver);
     query.bindValue(":second_driver", second_driver);
     query.bindValue(":first_driver_bonus", first_driver_bonus);
@@ -612,33 +612,33 @@ QSqlQuery DataBase::addTranspQuery(int route,
 }
 
 
-QSqlQuery DataBase::driverTranspQuery(int id)
+QSqlQuery DataBase::driverHaulage(int id)
 {
     QString str_query;
     str_query += "WITH temp AS ( "
                  "SELECT "
-                 "    tr.id AS id, "
-                 "    tr.status AS Статус, "
-                 "    tr.start_time AS Начато, "
-                 "    tr.end_time AS Завершено, "
+                 "    haulages.id AS id, "
+                 "    haulages.status AS Статус, "
+                 "    haulages.start_time AS Начато, "
+                 "    haulages.end_time AS Завершено, "
                  "    routes.start_point AS Откуда, "
                  "    routes.end_point AS Куда, "
                  "    routes.drv_fee_base AS База, "
-                 "    drv_transp.driver_bonus AS Бонус, "
-                 "    routes.drv_fee_base + drv_transp.driver_bonus AS Сумма "
-                 "FROM transportations tr "
+                 "    drv_haul.driver_bonus AS Бонус, "
+                 "    routes.drv_fee_base + drv_haul.driver_bonus AS Сумма "
+                 "FROM haulages "
                  "JOIN routes "
-                 "    ON tr.route = routes.id "
-                 "JOIN drv_transp "
-                 "    ON drv_transp.transp = tr.id "
+                 "    ON haulages.route = routes.id "
+                 "JOIN drv_haul "
+                 "    ON drv_haul.haulage = haulages.id "
                  "JOIN users "
-                 "    ON users.id = drv_transp.driver "
+                 "    ON users.id = drv_haul.driver "
                  "WHERE "
                  "    users.id = :id "
                  "ORDER BY "
-                 "    tr.status,"
-                 "    tr.start_time,"
-                 "    tr.end_time, "
+                 "    haulages.status,"
+                 "    haulages.start_time,"
+                 "    haulages.end_time, "
                  "    routes.name "
                  ") ("
                  "SELECT "
@@ -686,11 +686,11 @@ QSqlQuery DataBase::driverTranspQuery(int id)
 }
 
 
-QSqlQuery DataBase::successTranspQuery(int id)
+QSqlQuery DataBase::successHaulage(int id)
 {
     QString str_query;
     str_query += "UPDATE "
-                 "    transportations "
+                 "    haulages "
                  "SET "
                  "    status = 1, "
                  "    end_time = now() "
@@ -708,11 +708,11 @@ QSqlQuery DataBase::successTranspQuery(int id)
 }
 
 
-QSqlQuery DataBase::cancelTranspQuery(int id)
+QSqlQuery DataBase::cancelHaulage(int id)
 {
     QString str_query;
     str_query += "UPDATE "
-                 "    transportations "
+                 "    haulages "
                  "SET "
                  "    status = 2,"
                  "    end_time = now() "
@@ -730,11 +730,11 @@ QSqlQuery DataBase::cancelTranspQuery(int id)
 }
 
 
-QSqlQuery DataBase::reopenTranspQuery(int id)
+QSqlQuery DataBase::reopenHaulage(int id)
 {
     QString str_query;
     str_query += "UPDATE "
-                 "    transportations "
+                 "    haulages "
                  "SET "
                  "    status = 0,"
                  "    end_time = NULL "

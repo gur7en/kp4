@@ -73,7 +73,7 @@ public slots:
     void openTabsForAccounter();
     void openDriverDetailTab(int userID);
     void openAddRouteTab(GeneralizedTableTab *requester, int baseRouteID = 0);
-    void openAddTransportationTab(GeneralizedTableTab *requester);
+    void openAddHaulageTab(GeneralizedTableTab *requester);
 
 private:
     QWidget *central;
@@ -152,7 +152,7 @@ signals:
     void requestDriverDetail(int userID);
 
 private:
-    QAction *showTranspMenuAction;
+    QAction *showHaulageMenuAction;
 
  };
 
@@ -210,28 +210,28 @@ private:
 };
 
 
-class TransportationsTab : public GeneralizedTableTab
+class HaulagesTab : public GeneralizedTableTab
 {
     Q_OBJECT
 
 public:
-    TransportationsTab(DataBase *db);
+    HaulagesTab(DataBase *db);
 
 public slots:
     void resetQueryModel();
-    void addBlankTransportation();
-    void successTransportation();
-    void cancelTransportation();
-    void reopenTransportation();
+    void addBlankHaulage();
+    void successHaulage();
+    void cancelHaulage();
+    void reopenHaulage();
 
 signals:
-    void requestAddTransportation(TransportationsTab *requester);
+    void requestAddHaulage(HaulagesTab *requester);
 
 private:
-    QAction *addTranspMenuAction;
-    QAction *successTranspMenuAction;
-    QAction *cancelTranspMenuAction;
-    QAction *reopenTranspMenuAction;
+    QAction *addHaulageMenuAction;
+    QAction *successHaulageMenuAction;
+    QAction *cancelHaulageMenuAction;
+    QAction *reopenHaulageMenuAction;
 };
 
 
@@ -287,15 +287,15 @@ private:
 };
 
 
-class AddTransportationTab : public QWidget
+class AddHaulageTab : public QWidget
 {
     Q_OBJECT
 
 public:
-    AddTransportationTab(DataBase *db);
+    AddHaulageTab(DataBase *db);
 
 public slots:
-    void addTransportation();
+    void addHaulage();
     void close();
 
 signals:
@@ -311,7 +311,7 @@ private:
     QComboBox *secondDriverCombo;
     QSpinBox *secondDriverBonusSpin;
     QComboBox *routeCombo;
-    QPushButton *addTranspButton;
+    QPushButton *addHaulageButton;
     QPushButton *cancelButton;
 
 };

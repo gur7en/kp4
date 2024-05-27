@@ -33,7 +33,7 @@ CREATE TABLE routes (
     drv_fee_base MONEY
 );
 
-CREATE TABLE transportations (
+CREATE TABLE haulages (
     id SERIAL PRIMARY KEY,
     status INT NOT NULL,
     route INT REFERENCES routes(id),
@@ -41,8 +41,8 @@ CREATE TABLE transportations (
     end_time TIMESTAMP
 );
 
-CREATE TABLE drv_transp (
-    transp INT REFERENCES transportations(id),
+CREATE TABLE drv_haul (
+    haulage INT REFERENCES haulages(id),
     driver INT REFERENCES users(id),
     driver_number INT,
     driver_bonus MONEY
@@ -79,7 +79,7 @@ VALUES
     ('В глушь', false, 'Оттуда', 'Туда', 800, 'В тех е*енях семеро наших полегло', 950, 350)
 ;
 
-INSERT INTO transportations  
+INSERT INTO haulages  
     (status, route, start_time, end_time)
 VALUES
     (1, (SELECT id FROM routes WHERE name='Под боком'), '2023-08-12 10:00', '2023-08-12 12:00'),
@@ -87,13 +87,13 @@ VALUES
     (0, (SELECT id FROM routes WHERE name='Путь-дорожка'), '2023-08-13 10:20', NULL)
 ;
 
-INSERT INTO drv_transp 
-    (transp, driver, driver_number, driver_bonus)
+INSERT INTO drv_haul 
+    (haulage, driver, driver_number, driver_bonus)
 VALUES
-    ((SELECT id FROM transportations WHERE start_time='2023-08-12 10:00'), (SELECT id FROM users WHERE login='driver1'), 1, 0),
-    ((SELECT id FROM transportations WHERE start_time='2023-08-12 15:32'), (SELECT id FROM users WHERE login='driver1'), 1, 0),
-    ((SELECT id FROM transportations WHERE start_time='2023-08-13 10:20'), (SELECT id FROM users WHERE login='driver1'), 1, 0),
-    ((SELECT id FROM transportations WHERE start_time='2023-08-13 10:20'), (SELECT id FROM users WHERE login='driver2'), 2, 0)
+    ((SELECT id FROM haulages WHERE start_time='2023-08-12 10:00'), (SELECT id FROM users WHERE login='driver1'), 1, 0),
+    ((SELECT id FROM haulages WHERE start_time='2023-08-12 15:32'), (SELECT id FROM users WHERE login='driver1'), 1, 0),
+    ((SELECT id FROM haulages WHERE start_time='2023-08-13 10:20'), (SELECT id FROM users WHERE login='driver1'), 1, 0),
+    ((SELECT id FROM haulages WHERE start_time='2023-08-13 10:20'), (SELECT id FROM users WHERE login='driver2'), 2, 0)
 ;
 
 CREATE FUNCTION getShortName(user_id INT)

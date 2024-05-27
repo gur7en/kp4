@@ -64,10 +64,10 @@ void MainWindow::openTabsForLogist()
 {
     openProfileTab();
 
-    TransportationsTab *transp = new TransportationsTab(db);
-    addTab(transp, "Перевозки");
-    connect(transp, &TransportationsTab::requestAddTransportation,
-            this, &MainWindow::openAddTransportationTab);
+    HaulagesTab *haulage = new HaulagesTab(db);
+    addTab(haulage, "Перевозки");
+    connect(haulage, &HaulagesTab::requestAddHaulage,
+            this, &MainWindow::openAddHaulageTab);
 
     RoutesTab *routes = new RoutesTab(db);
     addTab(routes, "Маршруты");
@@ -119,12 +119,12 @@ void MainWindow::openAddRouteTab(GeneralizedTableTab *requester, int baseRouteID
 }
 
 
-void MainWindow::openAddTransportationTab(GeneralizedTableTab *requester)
+void MainWindow::openAddHaulageTab(GeneralizedTableTab *requester)
 {
-    AddTransportationTab *tab = new AddTransportationTab(db);
+    AddHaulageTab *tab = new AddHaulageTab(db);
     addTab(tab, "Добавление перевозки");
     tabWidget->setCurrentWidget(tab);
-    connect(tab, &AddTransportationTab::requestUpdateTable,
+    connect(tab, &AddHaulageTab::requestUpdateTable,
             requester, &GeneralizedTableTab::resetQueryModel);
 }
 
@@ -362,9 +362,9 @@ DriversTab::DriversTab(DataBase *db)
 {
     tabLayout->addWidget(table);
 
-    showTranspMenuAction = new QAction("Просмотреть перевозки", this);
-    tableContextMenu->addAction(showTranspMenuAction);
-    connect(showTranspMenuAction, &QAction::triggered,
+    showHaulageMenuAction = new QAction("Просмотреть перевозки", this);
+    tableContextMenu->addAction(showHaulageMenuAction);
+    connect(showHaulageMenuAction, &QAction::triggered,
             this, &DriversTab::detailSelectedDriver);
 
     DriversTab::resetQueryModel();
@@ -373,10 +373,10 @@ DriversTab::DriversTab(DataBase *db)
 
 void DriversTab::showTableContextMenu(QPoint position)
 {
-    tableContextMenu->removeAction(showTranspMenuAction);
+    tableContextMenu->removeAction(showHaulageMenuAction);
     QItemSelectionModel *select = table->selectionModel();
     if(select->hasSelection()) {
-        tableContextMenu->addAction(showTranspMenuAction);
+        tableContextMenu->addAction(showHaulageMenuAction);
     }
 
     QPoint formPos = table->viewport()->mapToGlobal(position);
@@ -392,7 +392,7 @@ void DriversTab::detailSelectedDriver()
 
 void DriversTab::resetQueryModel()
 {
-    tableModel->setQuery(db->usersQuery(UserRole::Driver));
+    tableModel->setQuery(db->users(UserRole::Driver));
     table->resizeColumnsToContents();
     table->setColumnHidden(0, true);
 }
@@ -410,7 +410,7 @@ LogistsTab::LogistsTab(DataBase *db)
 
 void LogistsTab::resetQueryModel()
 {
-    tableModel->setQuery(db->usersQuery(UserRole::Logist));
+    tableModel->setQuery(db->users(UserRole::Logist));
     table->resizeColumnsToContents();
 }
 
@@ -427,7 +427,7 @@ AccountersTab::AccountersTab(DataBase *db)
 
 void AccountersTab::resetQueryModel()
 {
-    tableModel->setQuery(db->usersQuery(UserRole::Accounter));
+    tableModel->setQuery(db->users(UserRole::Accounter));
     table->resizeColumnsToContents();
 }
 
@@ -473,14 +473,14 @@ void RoutesTab::addBasedOnSelectedRoute()
 
 void RoutesTab::activateRoute()
 {
-    db->activateRouteQuery(selectedID());
+    db->activateRoute(selectedID());
     resetQueryModel();
 }
 
 
 void RoutesTab::deactivateRoute()
 {
-    db->deactivateRouteQuery(selectedID());
+    db->deactivateRoute(selectedID());
     resetQueryModel();
 }
 
@@ -510,65 +510,65 @@ void RoutesTab::resetQueryModel()
 
 //==============================================================================
 
-TransportationsTab::TransportationsTab(DataBase *db)
+HaulagesTab::HaulagesTab(DataBase *db)
     : GeneralizedTableTab(db)
 {
     tabLayout->addWidget(table);
 
-    addTranspMenuAction = new QAction("Добавить перевозку", this);
-    tableContextMenu->addAction(addTranspMenuAction);
-    connect(addTranspMenuAction, &QAction::triggered,
-            this, &TransportationsTab::addBlankTransportation);
+    addHaulageMenuAction = new QAction("Добавить перевозку", this);
+    tableContextMenu->addAction(addHaulageMenuAction);
+    connect(addHaulageMenuAction, &QAction::triggered,
+            this, &HaulagesTab::addBlankHaulage);
 
-    successTranspMenuAction = new QAction("Завершить перевозку", this);
-    tableContextMenu->addAction(successTranspMenuAction);
-    connect(successTranspMenuAction, &QAction::triggered,
-            this, &TransportationsTab::successTransportation);
+    successHaulageMenuAction = new QAction("Завершить перевозку", this);
+    tableContextMenu->addAction(successHaulageMenuAction);
+    connect(successHaulageMenuAction, &QAction::triggered,
+            this, &HaulagesTab::successHaulage);
 
-    cancelTranspMenuAction = new QAction("Отменить перевозку", this);
-    tableContextMenu->addAction(cancelTranspMenuAction);
-    connect(cancelTranspMenuAction, &QAction::triggered,
-            this, &TransportationsTab::cancelTransportation);
+    cancelHaulageMenuAction = new QAction("Отменить перевозку", this);
+    tableContextMenu->addAction(cancelHaulageMenuAction);
+    connect(cancelHaulageMenuAction, &QAction::triggered,
+            this, &HaulagesTab::cancelHaulage);
 
-    reopenTranspMenuAction = new QAction("Вернуть перевозку в работу", this);
-    tableContextMenu->addAction(reopenTranspMenuAction);
-    connect(reopenTranspMenuAction, &QAction::triggered,
-            this, &TransportationsTab::reopenTransportation);
+    reopenHaulageMenuAction = new QAction("Вернуть перевозку в работу", this);
+    tableContextMenu->addAction(reopenHaulageMenuAction);
+    connect(reopenHaulageMenuAction, &QAction::triggered,
+            this, &HaulagesTab::reopenHaulage);
 
-    TransportationsTab::resetQueryModel();
+    HaulagesTab::resetQueryModel();
 }
 
 
-void TransportationsTab::addBlankTransportation()
+void HaulagesTab::addBlankHaulage()
 {
-    emit requestAddTransportation(this);
+    emit requestAddHaulage(this);
 }
 
 
-void TransportationsTab::successTransportation()
+void HaulagesTab::successHaulage()
 {
-    db->successTranspQuery(selectedID());
+    db->successHaulage(selectedID());
     resetQueryModel();
 }
 
 
-void TransportationsTab::cancelTransportation()
+void HaulagesTab::cancelHaulage()
 {
-    db->cancelTranspQuery(selectedID());
+    db->cancelHaulage(selectedID());
     resetQueryModel();
 }
 
 
-void TransportationsTab::reopenTransportation()
+void HaulagesTab::reopenHaulage()
 {
-    db->reopenTranspQuery(selectedID());
+    db->reopenHaulage(selectedID());
     resetQueryModel();
 }
 
 
-void TransportationsTab::resetQueryModel()
+void HaulagesTab::resetQueryModel()
 {
-    tableModel->setQuery(db->transpQuery());
+    tableModel->setQuery(db->haulage());
     table->resizeColumnsToContents();
 }
 
@@ -635,7 +635,7 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
 
 void DriverDetailTab::resetQueryModel()
 {
-    tableModel->setQuery(db->driverTranspQuery(userID));
+    tableModel->setQuery(db->driverHaulage(userID));
     table->resizeColumnsToContents();
 }
 
@@ -712,7 +712,7 @@ void AddRouteTab::fillFromBaseRoute()
     int client_price;
     int driver_fee;
 
-    QSqlQuery query = db->routeByIdQuery(baseRouteID);
+    QSqlQuery query = db->routeById(baseRouteID);
     db->parseRoute(query, name, start, end, length, details,
                    client_price, driver_fee);
 
@@ -737,8 +737,8 @@ void AddRouteTab::addRoute()
     int driver_fee = driverFeeSpin->value();
 
     QSqlQuery query;
-    query = db->addRouteQuery(name, start, end, length, details,
-                              client_price, driver_fee);
+    query = db->addRoute(name, start, end, length, details,
+                         client_price, driver_fee);
 
     emit requestUpdateTable();
     close();
@@ -752,20 +752,20 @@ void AddRouteTab::close()
 
 //==============================================================================
 
-AddTransportationTab::AddTransportationTab(DataBase *db)
+AddHaulageTab::AddHaulageTab(DataBase *db)
 {
     this->db = db;
 
     QFormLayout *tabLayout = new QFormLayout(this);
 
     driversFirstModel = new QueryModel;
-    driversFirstModel->setQuery(db->usersListQuery(UserRole::Driver, false));
+    driversFirstModel->setQuery(db->usersList(UserRole::Driver, false));
 
     driversSecondModel = new QueryModel;
-    driversSecondModel->setQuery(db->usersListQuery(UserRole::Driver, true));
+    driversSecondModel->setQuery(db->usersList(UserRole::Driver, true));
 
     routesModel = new QueryModel;
-    routesModel->setQuery(db->routesListQuery());
+    routesModel->setQuery(db->routesList());
 
     QSpacerItem *verticalSpacer_1 = new QSpacerItem
         (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -801,15 +801,15 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
     line_3->setFrameShape(QFrame::HLine);
     tabLayout->addRow(line_3);
 
-    addTranspButton = new QPushButton("Добавить перевозку");
-    tabLayout->addRow(addTranspButton);
-    connect(addTranspButton, &QPushButton::clicked,
-            this, &AddTransportationTab::addTransportation);
+    addHaulageButton = new QPushButton("Добавить перевозку");
+    tabLayout->addRow(addHaulageButton);
+    connect(addHaulageButton, &QPushButton::clicked,
+            this, &AddHaulageTab::addHaulage);
 
     cancelButton = new QPushButton("Отмена");
     tabLayout->addRow(cancelButton);
     connect(cancelButton, &QPushButton::clicked,
-            this, &AddTransportationTab::close);
+            this, &AddHaulageTab::close);
 
     QSpacerItem *verticalSpacer_2 = new QSpacerItem
         (0, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
@@ -817,7 +817,7 @@ AddTransportationTab::AddTransportationTab(DataBase *db)
 }
 
 
-void AddTransportationTab::addTransportation()
+void AddHaulageTab::addHaulage()
 {
     int firstID = firstDriverCombo->currentData().toInt();
     int first_bonus = firstDriverBonusSpin->value();
@@ -826,16 +826,16 @@ void AddTransportationTab::addTransportation()
     int routeID = routeCombo->currentData().toInt();
 
     QSqlQuery query;
-    query = db->addTranspQuery(routeID,
-                               firstID, first_bonus,
-                               secondID, second_bonus);
+    query = db->addHaulage(routeID,
+                           firstID, first_bonus,
+                           secondID, second_bonus);
 
     emit requestUpdateTable();
     close();
 }
 
 
-void AddTransportationTab::close()
+void AddHaulageTab::close()
 {
     deleteLater();
 }

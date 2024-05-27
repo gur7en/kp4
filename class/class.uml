@@ -14,21 +14,19 @@ class DataBase {
     + UserRole userRole()
     + bool checkPassword(string password)
     + bool changePassword(string new_password)
-    + QueryResult usersQuery(UserRole role_code)
-    + QueryResult routesQuery()
-    + QueryResult addRouteQuery()
-    + QueryResult activateRouteQuery(int id)
-    + QueryResult deactivateRouteQuery(int id)
-    + QueryResult transpQuery()
-    + QueryResult driverTranspQuery(int id)
-    + QueryResult addTranspQuery()
-    + QueryResult cancelTranspQuery(int id)
-    + QueryResult successTranspQuery(int id)
-    + QueryResult reopenTranspQuery(int id)
-
+    + QueryResult users(UserRole role_code)
+    + QueryResult routes()
+    + QueryResult addRoute()
+    + QueryResult activateRoute(int id)
+    + QueryResult deactivateRoute(int id)
+    + QueryResult haulages()
+    + QueryResult driverHaulages(int id)
+    + QueryResult addHaulage()
+    + QueryResult cancelHaulage(int id)
+    + QueryResult successHaulage(int id)
+    + QueryResult reopenHaulage(int id)
     - int currentUserID
     - UserRole currentUserRole
-
 }
 
 enum Code {
@@ -55,7 +53,7 @@ class MainWindow {
     + void openTabsForAccounter()
     + void openDriverDetailTab(int userID)
     + void openAddRouteTab()
-    + void openAddTransportationTab()
+    + void openAddHaulageTab()
     - DataBase *db
     - GeneralizedTab[] tabs
     - void addTab(GeneralizedTab *tab, string name)
@@ -111,10 +109,10 @@ class RoutesTab {
     + void //resetTable()//
 }
 
-class TransportationsTab {
+class HaulagesTab {
     + Constructor(DataBase *db)
-    + void addTransportation()
-    + void changeTransportationStatus(int transpID, int new_status)
+    + void addHaulage()
+    + void changeHaulageStatus(int haulageID, int new_status)
     + void //resetTable()//
 }
 
@@ -124,30 +122,31 @@ class AddRouteTab {
     + void close()
 }
 
-class AddTransportationTab {
+class AddHaulageTab {
     + Constructor(DataBase *db)
-    + void addTransportation()
+    + void addHaulage()
     + void close()
 }
 
 UserRole *-- Code
 DataBase o-left- UserRole
 MainWindow o-left- DataBase
-MainWindow o-- GeneralizedTab
+MainWindow *-- GeneralizedTab
+DataBase --o GeneralizedTab
 GeneralizedTab <|.left. LoginTab
 GeneralizedTab <|.right. ProfileTab
 GeneralizedTab <|.. AddRouteTab
-GeneralizedTab <|.. AddTransportationTab
+GeneralizedTab <|.. AddHaulageTab
 GeneralizedTab <|--- GeneralizedTableTab
 GeneralizedTableTab <|.. DriversTab
 GeneralizedTableTab <|.. LogistsTab
 GeneralizedTableTab <|.. AccountersTab
 GeneralizedTableTab <|.. DriverDetailsTab 
 GeneralizedTableTab <|.left. RoutesTab
-GeneralizedTableTab <|.right. TransportationsTab
+GeneralizedTableTab <|.right. HaulagesTab
 
 AddRouteTab -[hidden]- RoutesTab
-AddTransportationTab -[hidden]- TransportationsTab
+AddHaulageTab -[hidden]- HaulagesTab
 
 DriversTab -right[hidden]- DriverDetailsTab
 

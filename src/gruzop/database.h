@@ -71,31 +71,31 @@ public:
     QString userShortName(int id = 0);
     bool checkPasswordCurrentUser(QString &password);
     bool changePasswordCurrentUser(QString &new_password);
-    QSqlQuery usersQuery(UserRole::Code role_code);
-    QSqlQuery usersListQuery(UserRole::Code role_code, bool with_empty);
-    QSqlQuery routesQuery();
-    QSqlQuery routesListQuery();
-    QSqlQuery routeByIdQuery(int id);
+    QSqlQuery users(UserRole::Code role_code);
+    QSqlQuery usersList(UserRole::Code role_code, bool with_empty);
+    QSqlQuery routes();
+    QSqlQuery routesList();
+    QSqlQuery routeById(int id);
     void parseRoute(QSqlQuery &query,
                     QString &out_name,
                     QString &out_start, QString &out_end,
                     int &out_length, QString &out_details,
                     int &out_client_price, int &out_driver_fee_base);
-    QSqlQuery addRouteQuery(const QString &name,
-                            const QString &start, const QString &end,
-                            int length, const QString &details,
-                            int client_price, int driver_fee_base);
-    QSqlQuery activateRouteQuery(int id);
-    QSqlQuery deactivateRouteQuery(int id);
+    QSqlQuery addRoute(const QString &name,
+                       const QString &start, const QString &end,
+                       int length, const QString &details,
+                       int client_price, int driver_fee_base);
+    QSqlQuery activateRoute(int id);
+    QSqlQuery deactivateRoute(int id);
     QSqlQuery routesQueryAll();
-    QSqlQuery transpQuery();
-    QSqlQuery driverTranspQuery(int id = 0);
-    QSqlQuery addTranspQuery(int route,
-                             int first_driver, int first_driver_bonus,
-                             int second_driver, int second_driver_bonus);
-    QSqlQuery cancelTranspQuery(int id);
-    QSqlQuery successTranspQuery(int id);
-    QSqlQuery reopenTranspQuery(int id);
+    QSqlQuery haulage();
+    QSqlQuery driverHaulage(int id = 0);
+    QSqlQuery addHaulage(int route,
+                         int first_driver, int first_driver_bonus,
+                         int second_driver, int second_driver_bonus);
+    QSqlQuery cancelHaulage(int id);
+    QSqlQuery successHaulage(int id);
+    QSqlQuery reopenHaulage(int id);
 
 private:
     QSqlDatabase db;

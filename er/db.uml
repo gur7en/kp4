@@ -35,7 +35,7 @@ entity "Routes" as routes {
     driver_fee_base : money
 }
 
-entity "Transportations" as transps {
+entity "Haulages" as haulages {
     *id : ID <<generated>>
     --
     status : int
@@ -44,8 +44,8 @@ entity "Transportations" as transps {
     end_time : timestamp
 }
 
-entity "Drivers for transportation" as drv_transp {
-    *transp : ID <<ref Transportations(id)>>
+entity "Drivers for haulage" as drv_haul {
+    *haulage : ID <<ref Haulages(id)>>
     --
     driver : ID <<ref Users(id)>>
     driver_number : int
@@ -53,8 +53,8 @@ entity "Drivers for transportation" as drv_transp {
 }
 
 users ||-right-o| drv_exp
-transps ||-right-|{ drv_transp
-transps ||-down-o{ routes
-drv_transp }o-down-|| users
+haulages ||-right-|{ drv_haul
+haulages ||-down-o{ routes
+drv_haul }o-down-|| users
 
 @enduml
