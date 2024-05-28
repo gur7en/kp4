@@ -5,6 +5,7 @@ state "Домашнее окно" as home
 state "Профиль" as profile
 state "Водители" as drivers
 state "Логисты" as logists
+state "Бухгалтеры" as accounters
 
 login : Пользователь может:
 login : - ввести логин
@@ -24,19 +25,19 @@ home : - открыть вкладку логистов
 drivers : Пользователь может:
 drivers : - просматривать список водителей
 drivers : - просматривать зарплату водителей
-drivers : - добавлять водителей
-drivers : - удалять водителей
 
 logists : Пользователь может:
 logists : - просматривать список логистов
-logists : - добавлять логистов
-logists : - удалять логистов
+
+accounters : Пользователь может:
+accounters : - просматривать список бухгалтеров
 
 [*] -down-> login
 login -right-> home : Нажат "Вход"
 home -up-> profile : Нажат "Профиль"
 home --> drivers : Нажат "Водители"
 home --> logists : Нажат "Логисты"
+home --> accounters : Нажат "Бухгалтеры"
 profile --> login : Нажат "Выйти из системы"
 login -left-> [*] : Окно закрыто
 

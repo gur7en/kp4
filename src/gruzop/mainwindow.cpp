@@ -394,7 +394,6 @@ void DriversTab::resetQueryModel()
 {
     tableModel->setQuery(db->users(UserRole::Driver));
     table->resizeColumnsToContents();
-    table->setColumnHidden(0, true);
 }
 
 //==============================================================================
@@ -568,7 +567,7 @@ void HaulagesTab::reopenHaulage()
 
 void HaulagesTab::resetQueryModel()
 {
-    tableModel->setQuery(db->haulage());
+    tableModel->setQuery(db->haulages());
     table->resizeColumnsToContents();
 }
 
@@ -635,7 +634,7 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
 
 void DriverDetailTab::resetQueryModel()
 {
-    tableModel->setQuery(db->driverHaulage(userID));
+    tableModel->setQuery(db->driverHaulages(userID));
     table->resizeColumnsToContents();
 }
 
@@ -712,9 +711,8 @@ void AddRouteTab::fillFromBaseRoute()
     int client_price;
     int driver_fee;
 
-    QSqlQuery query = db->routeById(baseRouteID);
-    db->parseRoute(query, name, start, end, length, details,
-                   client_price, driver_fee);
+    db->routeInfo(baseRouteID, name, start, end, length, details,
+                  client_price, driver_fee);
 
     routeNameEdit->setText(name);
     fromEdit->setText(start);

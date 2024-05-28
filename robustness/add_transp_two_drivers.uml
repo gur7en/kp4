@@ -5,34 +5,34 @@ actor "Логист" as logist
 entity "База данных" as db 
 
 boundary "Домашнее окно\nлогиста" as w_home
-control "Отобразить\nдомашнее окно" as dw_home
-control "Открыть вкладку\nПеревозки" as ot_transp
+control "Закрыть вкладку" as ct_addtran
+control "Открыть вкладку\nПеревозки" as ot_tran
 
-boundary "Окно добавления\nперевозки" as w_addtran
-control "Отобразить окно\nдобавления перевозки" as dw_addtran
-control "Запрос списков\nводителей и маршрутов" as get_drv_transp
-control "Обновление списков\nводителей и маршрутов" as upd_drv_transp
+boundary "Вкладка добавления\nперевозки" as t_addtran
+control "Добавить вкладку\nдобавления перевозки" as at_addtran
+control "Запрос списков\nводителей и маршрутов" as get_drv_tran
+control "Обновление списков\nводителей и маршрутов" as upd_drv_tran
 control "Добавить перевозку" as add_tran
 
 ' =============================================================================
 
 logist -- w_home
-logist -- w_addtran
+logist -- t_addtran
 
-w_home --> ot_transp
-dw_home --> w_home
+w_home --> ot_tran
+ct_addtran --> w_home
 
-w_home --> dw_addtran : "Нажата кнопка\nДобавить"
-dw_addtran --> w_addtran
+w_home --> at_addtran : "Нажата кнопка\nДобавить"
+at_addtran --> t_addtran
 
-w_addtran --> get_drv_transp : "При открытии\nокна"
-get_drv_transp --> upd_drv_transp
-upd_drv_transp --> w_addtran
-w_addtran --> add_tran : "Нажата кнопка\nПодтвердить"
-w_addtran --> dw_home : "Нажата кнопка\nОтмена"
-add_tran --> dw_home : "Окно\nзакрыто"
+t_addtran --> get_drv_tran : "При открытии\nвкладки"
+get_drv_tran --> upd_drv_tran
+upd_drv_tran --> t_addtran
+t_addtran --> add_tran : "Нажата кнопка\nПодтвердить"
+t_addtran --> ct_addtran : "Нажата кнопка\nОтмена"
+add_tran --> ct_addtran
 
 add_tran --> db
-get_drv_transp --> db
+get_drv_tran --> db
 
 @enduml

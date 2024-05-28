@@ -75,12 +75,11 @@ public:
     QSqlQuery usersList(UserRole::Code role_code, bool with_empty);
     QSqlQuery routes();
     QSqlQuery routesList();
-    QSqlQuery routeById(int id);
-    void parseRoute(QSqlQuery &query,
-                    QString &out_name,
-                    QString &out_start, QString &out_end,
-                    int &out_length, QString &out_details,
-                    int &out_client_price, int &out_driver_fee_base);
+    bool routeInfo(int id,
+                   QString &out_name,
+                   QString &out_start, QString &out_end,
+                   int &out_length, QString &out_details,
+                   int &out_client_price, int &out_driver_fee_base);
     QSqlQuery addRoute(const QString &name,
                        const QString &start, const QString &end,
                        int length, const QString &details,
@@ -88,8 +87,8 @@ public:
     QSqlQuery activateRoute(int id);
     QSqlQuery deactivateRoute(int id);
     QSqlQuery routesQueryAll();
-    QSqlQuery haulage();
-    QSqlQuery driverHaulage(int id = 0);
+    QSqlQuery haulages();
+    QSqlQuery driverHaulages(int id = 0);
     QSqlQuery addHaulage(int route,
                          int first_driver, int first_driver_bonus,
                          int second_driver, int second_driver_bonus);

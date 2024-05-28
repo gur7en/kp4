@@ -54,11 +54,11 @@ UserRole::Code DataBase::login(const QString &username, const QString &password)
     QCryptographicHash hash(QCryptographicHash::Md5);
     hash.addData(password.toUtf8());
 
+    QString str_query;
+    str_query = "SELECT * FROM getLoginData(:login, :hash);";
+
     QSqlQuery query(db);
-    query.prepare("SELECT id, role FROM users "
-                  "WHERE login = :login AND hash = :hash "
-                  "AND fired = false ;"
-                  );
+    query.prepare(str_query);
     query.bindValue(":login", username);
     query.bindValue(":hash", QString(hash.result().toHex()));
 
@@ -162,13 +162,7 @@ bool DataBase::checkPasswordCurrentUser(QString &password)
     hash.addData(password.toUtf8());
 
     QString str_query;
-    str_query += "SELECT EXISTS ( "
-                 "    SELECT id "
-                 "    FROM users "
-                 "    WHERE id = :id AND hash = :hash "
-                 ")"
-                 ";"
-        ;
+    str_query = "SELECT * FROM checkPassword(:id, :hash);";
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -221,23 +215,11 @@ QSqlQuery DataBase::users(UserRole::Code role_code)
 {
     UserRole role(role_code);
     QString str_query;
-    str_query += "SELECT "
-                 "    id, "
-                 "    surname AS Фамилия, "
-                 "    name AS Имя, "
-                 "    patronim AS Отчество, "
-                 "    phone AS Телефон, "
-                 "    details AS Примечание "
-        ;
     if(role == UserRole::Driver) {
-        str_query += ", experience AS Стаж ";
+        str_query = "SELECT * FROM getDrivers();";
+    } else {
+        str_query = "SELECT * FROM getUsers(:role);";
     }
-
-    str_query += "FROM users "
-                 "LEFT JOIN drv_exp ON users.id = drv_exp.driver "
-                 "WHERE role = :role "
-                 "AND fired = false ;"
-        ;
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -254,31 +236,10 @@ QSqlQuery DataBase::usersList(UserRole::Code role_code, bool with_empty)
     QString str_query;
 
     if(with_empty) {
-        str_query += "SELECT * "
-                     "FROM ( "
-                     "SELECT"
-                     "    0 AS id, "
-                     "    '<Никто не выбран>' AS name "
-                     ") UNION ( "
-            ;
+        str_query = "SELECT * FROM getUsersShortWithEmpty(:role);";
+    } else {
+        str_query = "SELECT * FROM getUsersShort(:role);";
     }
-
-    str_query += "SELECT "
-                 "    id, "
-                 "    getFullName(id) AS name "
-                 "FROM "
-                 "    users "
-                 "WHERE "
-                 "    role = :role "
-        ;
-
-    if(with_empty) {
-        str_query += ") "
-            ;
-    }
-
-    str_query += ";"
-        ;
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -292,23 +253,7 @@ QSqlQuery DataBase::usersList(UserRole::Code role_code, bool with_empty)
 QSqlQuery DataBase::routes()
 {
     QString str_query;
-    str_query += "SELECT "
-                 "    id, "
-                 "    name AS Название, "
-                 "    start_point AS Откуда, "
-                 "    end_point AS Куда, "
-                 "    len AS \"Длина (км)\", "
-                 "    client_price AS Цена, "
-                 "    details AS Примечание "
-                 "FROM routes "
-                 "WHERE active = true "
-                 "ORDER BY "
-                 "    active DESC,"
-                 "    start_point,"
-                 "    end_point, "
-                 "    name "
-                 ";"
-        ;
+    str_query += "SELECT * FROM getActiveRoutes();";
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -321,26 +266,7 @@ QSqlQuery DataBase::routes()
 QSqlQuery DataBase::routesList()
 {
     QString str_query;
-    str_query += "SELECT "
-                 "    id, "
-                 "    CONCAT( "
-                 "        name, "
-                 "        ' (', "
-                 "        start_point, "
-                 "        ' -> ', "
-                 "        end_point, "
-                 "        ', ', "
-                 "        len, ' км', "
-                 "        ')' "
-                 "    ) "
-                 "FROM routes "
-                 "WHERE active = true "
-                 "ORDER BY "
-                 "    name, "
-                 "    start_point, "
-                 "    end_point "
-                 ";"
-        ;
+    str_query += "SELECT * FROM getActiveRoutesShort();";
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -353,30 +279,7 @@ QSqlQuery DataBase::routesList()
 QSqlQuery DataBase::routesQueryAll()
 {
     QString str_query;
-    str_query += "SELECT "
-                 "    id, "
-                 "    CASE "
-                 "        WHEN active = true THEN "
-                 "            'Открыт' "
-                 "        WHEN active = false THEN "
-                 "            'Закрыт' "
-                 "        ELSE "
-                 "            'Неизвестно' "
-                 "    END Статус, "
-                 "    name AS Название, "
-                 "    start_point AS Откуда, "
-                 "    end_point AS Куда, "
-                 "    len AS \"Длина (км)\", "
-                 "    client_price AS Цена, "
-                 "    details AS Примечание "
-                 "FROM routes "
-                 "ORDER BY "
-                 "    active DESC,"
-                 "    start_point,"
-                 "    end_point, "
-                 "    name "
-                 ";"
-        ;
+    str_query += "SELECT * FROM getAllRoutes();";
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -386,38 +289,20 @@ QSqlQuery DataBase::routesQueryAll()
 }
 
 
-QSqlQuery DataBase::routeById(int id)
+bool DataBase::routeInfo(int id,
+                         QString &out_name,
+                         QString &out_start, QString &out_end,
+                         int &out_length, QString &out_details,
+                         int &out_client_price, int &out_driver_fee_base)
 {
     QString str_query;
-    str_query += "SELECT "
-                 "    id, "
-                 "    name, "
-                 "    start_point, "
-                 "    end_point, "
-                 "    len, "
-                 "    client_price::numeric AS client_price, "
-                 "    drv_fee_base::numeric AS drv_fee_base, "
-                 "    details "
-                 "FROM routes "
-                 "WHERE id = :id "
-                 ";"
-        ;
+    str_query += "SELECT * FROM getRouteInfo(:id);";
 
     QSqlQuery query(db);
     query.prepare(str_query);
     query.bindValue(":id", id);
     query.exec();
 
-    return query;
-}
-
-
-void DataBase::parseRoute(QSqlQuery &query,
-                          QString &out_name,
-                          QString &out_start, QString &out_end,
-                          int &out_length, QString &out_details,
-                          int &out_client_price, int &out_driver_fee_base)
-{
     query.next();
     if(!query.value(0).isNull()) {
         out_name = query.value("name").toString();
@@ -427,6 +312,9 @@ void DataBase::parseRoute(QSqlQuery &query,
         out_details = query.value("details").toString();
         out_client_price = query.value("client_price").toString().toDouble();
         out_driver_fee_base = query.value("drv_fee_base").toString().toDouble();
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -437,13 +325,13 @@ QSqlQuery DataBase::addRoute(const QString &name,
                              int client_price, int driver_fee_base)
 {
     QString str_query;
-    str_query += "INSERT INTO routes "
-                 "    (name, active, start_point, end_point, "
-                 "     len, details, client_price, drv_fee_base "
+    str_query += "INSERT INTO routes ("
+                 "    name, active, start_point, end_point, "
+                 "    len, details, client_price, drv_fee_base "
                  "    ) "
-                 "VALUES "
-                 "    (:name, true, :start, :end, "
-                 "     :len, :details, :clprice, :drvfee"
+                 "VALUES ("
+                 "    :name, true, :start, :end, "
+                 "    :len, :details, :clprice, :drvfee"
                  "    ) "
                  ";"
         ;
@@ -505,48 +393,10 @@ QSqlQuery DataBase::deactivateRoute(int id)
 }
 
 
-QSqlQuery DataBase::haulage()
+QSqlQuery DataBase::haulages()
 {
     QString str_query;
-    str_query += "SELECT "
-                 "    haulages.id AS id, "
-                 "    CASE "
-                 "        WHEN haulages.status = 0 THEN "
-                 "            'В работе' "
-                 "        WHEN haulages.status = 1 THEN "
-                 "            'Завершено' "
-                 "        WHEN haulages.status = 2 THEN "
-                 "            'Отменено' "
-                 "        ELSE "
-                 "            'Неизвестно' "
-                 "        END Статус, "
-                 "    haulages.start_time AS Начато, "
-                 "    haulages.end_time AS Завершено, "
-                 "    routes.name AS Маршрут, "
-                 "    routes.start_point AS Откуда, "
-                 "    routes.end_point AS Куда, "
-                 "    getShortName(du1.id) AS \"Водитель 1\", "
-                 "    getShortName(du2.id) AS \"Водитель 2\" "
-                 "FROM haulages "
-                 "JOIN routes "
-                 "    ON haulages.route = routes.id "
-                 "JOIN drv_haul dh1 "
-                 "    ON dh1.haulage = haulages.id "
-                 "    AND dh1.driver_number = 1 "
-                 "JOIN users du1 "
-                 "    ON du1.id = dh1.driver "
-                 "LEFT JOIN drv_haul dh2 "
-                 "    ON dh2.haulage = haulages.id "
-                 "    AND dh2.driver_number = 2 "
-                 "LEFT JOIN users du2 "
-                 "    ON du2.id = dh2.driver "
-                 "ORDER BY "
-                 "    haulages.status,"
-                 "    haulages.start_time,"
-                 "    haulages.end_time, "
-                 "    routes.name "
-                 ";"
-        ;
+    str_query += "SELECT * FROM getHaulages();";
 
     QSqlQuery query(db);
     query.prepare(str_query);
@@ -612,65 +462,10 @@ QSqlQuery DataBase::addHaulage(int route,
 }
 
 
-QSqlQuery DataBase::driverHaulage(int id)
+QSqlQuery DataBase::driverHaulages(int id)
 {
     QString str_query;
-    str_query += "WITH temp AS ( "
-                 "SELECT "
-                 "    haulages.id AS id, "
-                 "    haulages.status AS Статус, "
-                 "    haulages.start_time AS Начато, "
-                 "    haulages.end_time AS Завершено, "
-                 "    routes.start_point AS Откуда, "
-                 "    routes.end_point AS Куда, "
-                 "    routes.drv_fee_base AS База, "
-                 "    drv_haul.driver_bonus AS Бонус, "
-                 "    routes.drv_fee_base + drv_haul.driver_bonus AS Сумма "
-                 "FROM haulages "
-                 "JOIN routes "
-                 "    ON haulages.route = routes.id "
-                 "JOIN drv_haul "
-                 "    ON drv_haul.haulage = haulages.id "
-                 "JOIN users "
-                 "    ON users.id = drv_haul.driver "
-                 "WHERE "
-                 "    users.id = :id "
-                 "ORDER BY "
-                 "    haulages.status,"
-                 "    haulages.start_time,"
-                 "    haulages.end_time, "
-                 "    routes.name "
-                 ") ("
-                 "SELECT "
-                 "    id, "
-                 "    CASE "
-                 "        WHEN Статус = 0 THEN "
-                 "            'В работе' "
-                 "        WHEN Статус = 1 THEN "
-                 "            'Завершено' "
-                 "        WHEN Статус = 2 THEN "
-                 "            'Отменено' "
-                 "        ELSE "
-                 "            'Неизвестно' "
-                 "    END Статус, "
-                 "    Начато, Завершено, "
-                 "    Откуда,  Куда, "
-                 "    База, Бонус, "
-                 "    Сумма "
-                 "FROM temp "
-                 ") UNION ("
-                 "SELECT "
-                 "    NULL AS id,"
-                 "    'Итого' AS Статус, "
-                 "    NULL AS Начато, NULL AS Завершено, "
-                 "    NULL AS Откуда, NULL AS Куда, "
-                 "    SUM(База) AS База, SUM(Бонус) AS Бонус, "
-                 "    SUM(Сумма) AS Сумма "
-                 "FROM temp "
-                 "WHERE Статус != 0 "
-                 ") "
-                 ";"
-        ;
+    str_query += "SELECT * FROM getDriverHaulages(:id);";
 
     QSqlQuery query(db);
     query.prepare(str_query);

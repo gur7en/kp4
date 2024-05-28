@@ -1,13 +1,11 @@
 @startuml
 
-actor "Отдел кадров\nБухгалтерия" as accountant
+actor "Бухгалтер" as accountant
 
-usecase "Добавить пользователя" as add_user
-usecase "Удалить пользователя" as del_user
+usecase "Получение списка пользователей" as list_user
 usecase "Расчёт зарплаты\nводителя" as salary_drv
 
-accountant -left-> add_user
-accountant -right-> del_user
-accountant -down-> salary_drv
+accountant -right-> list_user
+accountant -left-> salary_drv
 
 @enduml

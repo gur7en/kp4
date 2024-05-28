@@ -96,41 +96,313 @@ VALUES
     ((SELECT id FROM haulages WHERE start_time='2023-08-13 10:20'), (SELECT id FROM users WHERE login='driver2'), 2, 0)
 ;
 
+CREATE FUNCTION checkPassword(user_id INT, user_hash VARCHAR)
+RETURNS BOOLEAN
+AS $$
+    SELECT EXISTS (
+        SELECT id
+        FROM users 
+        WHERE 
+            id = user_id 
+            AND
+            hash = user_hash
+    )
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getLoginData(user_login VARCHAR, user_hash VARCHAR)
+RETURNS TABLE (
+    id INT,
+    role VARCHAR
+)
+AS $$
+    SELECT 
+        id,
+        role
+    FROM users 
+    WHERE 
+        login = user_login 
+        AND
+        hash = user_hash
+        AND
+        fired = false
+    ;
+$$ LANGUAGE SQL
+;
+
 CREATE FUNCTION getShortName(user_id INT)
 RETURNS VARCHAR
-AS
-$$
-SELECT 
-    surname || ' ' || LEFT(name, 1) || '.' || 
-        CASE 
-            WHEN patronim IS NOT NULL AND patronim != '' THEN
-                ' ' || LEFT(patronim, 1) || '.' 
-            ELSE 
-                '' 
-        END  
+AS $$
+    SELECT 
+        CONCAT(surname, ' ', LEFT(name, 1), '.') 
+            || 
+            CASE 
+                WHEN patronim IS NOT NULL AND patronim != '' THEN
+                    CONCAT(' ',  LEFT(patronim, 1), '.' )
+                ELSE 
+                    '' 
+            END  
     FROM users 
     WHERE id = user_id 
     ;
-$$
-LANGUAGE SQL
+$$ LANGUAGE SQL
 ;
 
 CREATE FUNCTION getFullName(user_id INT)
 RETURNS VARCHAR
-AS
-$$
-SELECT 
-    surname || ' ' || name ||  
-        CASE 
-            WHEN patronim IS NOT NULL AND patronim != '' THEN
-                ' ' || patronim  
-            ELSE 
-                '' 
-        END  
+AS $$
+    SELECT 
+        surname || ' ' || name ||  
+            CASE 
+                WHEN patronim IS NOT NULL AND patronim != '' THEN
+                    ' ' || patronim  
+                ELSE 
+                    '' 
+            END  
     FROM users 
     WHERE id = user_id 
     ;
-$$
-LANGUAGE SQL
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getUsers(users_role VARCHAR)
+RETURNS TABLE (
+    id INT,
+    Фамилия VARCHAR,
+    Имя VARCHAR,
+    Отчество VARCHAR,
+    Телефон VARCHAR,
+    Примечание VARCHAR
+) AS $$
+    SELECT
+        id, 
+        surname, 
+        name, 
+        patronim,
+        phone,
+        details
+    FROM
+        users
+        LEFT JOIN drv_exp ON users.id = drv_exp.driver
+    WHERE
+        role = users_role
+        AND
+        fired = false
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getDrivers()
+RETURNS TABLE (
+    id INT,
+    Фамилия VARCHAR,
+    Имя VARCHAR,
+    Отчество VARCHAR,
+    Стаж VARCHAR,
+    Телефон VARCHAR,
+    Примечание VARCHAR
+) AS $$
+    SELECT
+        id, 
+        surname, 
+        name, 
+        patronim,
+        experience,
+        phone,
+        details
+    FROM
+        users
+        LEFT JOIN drv_exp ON users.id = drv_exp.driver
+    WHERE
+        role = 'driver'
+        AND
+        fired = false
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getUsersShort(users_role VARCHAR)
+RETURNS TABLE (
+    id INT, name VARCHAR
+) AS $$
+    SELECT id, getFullName(id)
+    FROM users 
+    WHERE role = users_role
+    ORDER BY id
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getUsersShortWithEmpty(users_role VARCHAR)
+RETURNS TABLE (
+    id INT, name VARCHAR
+) AS $$
+    SELECT 0 as id, '<Никто не выбран>' as name
+    UNION
+    SELECT * 
+    FROM getUsersShort(users_role)
+    ORDER BY id
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getActiveRoutes()
+RETURNS TABLE (
+    id INT,
+    Название VARCHAR,
+    Откуда VARCHAR,
+    Куда VARCHAR,
+    "Длина (км)" INT,
+    Цена VARCHAR,
+    Примечание VARCHAR
+) AS $$
+    SELECT
+        id,
+        name,
+        start_point,
+        end_point,
+        len,
+        client_price,
+        details
+    FROM routes 
+    WHERE active = true
+    ORDER BY 
+        active DESC,
+        start_point,
+        end_point,
+        name
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getActiveRoutesShort()
+RETURNS TABLE (
+    id INT,
+    description VARCHAR
+) AS $$
+    SELECT
+        id, 
+        CONCAT( 
+            name, ' (', start_point, ' -> ', end_point, ', ', len, ' км', ')' 
+        ) 
+    FROM routes 
+    WHERE active = true 
+    ORDER BY 
+        name, 
+        start_point, 
+        end_point 
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getAllRoutes()
+RETURNS TABLE (
+    id INT,
+    Статус VARCHAR,
+    Название VARCHAR,
+    Откуда VARCHAR,
+    Куда VARCHAR,
+    "Длина (км)" INT,
+    Цена VARCHAR,
+    Примечание VARCHAR
+) AS $$
+    SELECT
+        id,
+        CASE 
+            WHEN active = true THEN 'Открыт' 
+            WHEN active = false THEN 'Закрыт' 
+            ELSE 'Неизвестно' 
+        END, 
+        name,
+        start_point,
+        end_point,
+        len,
+        client_price,
+        details
+    FROM routes 
+    ORDER BY 
+        active DESC,
+        start_point,
+        end_point,
+        name
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getRouteInfo(route_id INT)
+RETURNS TABLE (
+    id INT,
+    active BOOLEAN,
+    name VARCHAR,
+    start_point VARCHAR,
+    end_point VARCHAR,
+    len INT,
+    client_price INT,
+    drv_fee_base INT,
+    details VARCHAR
+) AS $$
+    SELECT
+        id,
+        active,
+        name,
+        start_point,
+        end_point,
+        len,
+        client_price::numeric,
+        drv_fee_base::numeric,
+        details
+    FROM routes 
+    WHERE id = route_id
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION getHaulages()
+RETURNS TABLE (
+    id int, 
+    Статус VARCHAR, 
+    Начато TIMESTAMP, 
+    Завершено TIMESTAMP, 
+    Маршрут VARCHAR, 
+    Откуда VARCHAR, 
+    Куда VARCHAR, 
+    "Водитель 1" VARCHAR, 
+    "Водитель 2" VARCHAR 
+) AS $$
+    SELECT 
+        haulages.id, 
+        CASE 
+            WHEN haulages.status = 0 THEN 'В работе' 
+            WHEN haulages.status = 1 THEN 'Завершено' 
+            WHEN haulages.status = 2 THEN 'Отменено' 
+            ELSE 'Неизвестно' 
+        END, 
+        haulages.start_time, 
+        haulages.end_time, 
+        routes.name, 
+        routes.start_point, 
+        routes.end_point, 
+        getShortName(du1.id), 
+        getShortName(du2.id) 
+    FROM haulages 
+    JOIN routes 
+        ON haulages.route = routes.id 
+    JOIN drv_haul dh1 
+        ON dh1.haulage = haulages.id AND dh1.driver_number = 1 
+    JOIN users du1 
+        ON du1.id = dh1.driver 
+    LEFT JOIN drv_haul dh2 
+        ON dh2.haulage = haulages.id AND dh2.driver_number = 2 
+    LEFT JOIN users du2 
+        ON du2.id = dh2.driver 
+    ORDER BY 
+        haulages.status,
+        haulages.start_time,
+        haulages.end_time, 
+        routes.name 
+    ;
+
+$$ LANGUAGE SQL
 ;
 
