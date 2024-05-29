@@ -84,9 +84,7 @@ public:
                        const QString &start, const QString &end,
                        int length, const QString &details,
                        int client_price, int driver_fee_base);
-    QSqlQuery activateRoute(int id);
-    QSqlQuery deactivateRoute(int id);
-    QSqlQuery routesQueryAll();
+    QSqlQuery activateRoute(int id, bool activate);
     QSqlQuery haulages();
     QSqlQuery driverHaulages(int id = 0);
     QSqlQuery addHaulage(int route,

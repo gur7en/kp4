@@ -113,8 +113,8 @@ QString DataBase::userFullName(int id)
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT getFullName(:id) ;");
-    query.bindValue(":id", id);
+    query.prepare("SELECT getFullName(?) ;");
+    query.bindValue(0, id);
 
     bool success = query.exec();
 
@@ -138,8 +138,8 @@ QString DataBase::userShortName(int id)
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT getShortName(:id) ;");
-    query.bindValue(":id", id);
+    query.prepare("SELECT getShortName(?) ;");
+    query.bindValue(0, id);
 
     bool success = query.exec();
 
@@ -161,13 +161,10 @@ bool DataBase::checkPasswordCurrentUser(QString &password)
     QCryptographicHash hash(QCryptographicHash::Md5);
     hash.addData(password.toUtf8());
 
-    QString str_query;
-    str_query = "SELECT * FROM checkPassword(:id, :hash);";
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", currentUserID);
-    query.bindValue(":hash", QString(hash.result().toHex()));
+    query.prepare("SELECT * FROM checkPassword(?, ?);");
+    query.bindValue(0, currentUserID);
+    query.bindValue(1, QString(hash.result().toHex()));
 
     bool success = query.exec();
 
@@ -214,77 +211,46 @@ bool DataBase::changePasswordCurrentUser(QString &new_password)
 QSqlQuery DataBase::users(UserRole::Code role_code)
 {
     UserRole role(role_code);
-    QString str_query;
-    if(role == UserRole::Driver) {
-        str_query = "SELECT * FROM getDrivers();";
-    } else {
-        str_query = "SELECT * FROM getUsers(:role);";
-    }
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":role", role.toString());
+    if(role == UserRole::Driver) {
+        query.prepare("SELECT * FROM getDrivers();");
+    } else {
+        query.prepare("SELECT * FROM getUsers(?);");
+    }
+    query.bindValue(0, role.toString());
     query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::usersList(UserRole::Code role_code, bool with_empty)
 {
-    UserRole role(role_code);
-    QString str_query;
-
+    QSqlQuery query(db);
     if(with_empty) {
-        str_query = "SELECT * FROM getUsersShortWithEmpty(:role);";
+        query.prepare("SELECT * FROM getUsersShortWithEmpty(?);");
     } else {
-        str_query = "SELECT * FROM getUsersShort(:role);";
+        query.prepare("SELECT * FROM getUsersShort(?);");
     }
-
-    QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":role", role.toString());
+    query.bindValue(0, UserRole(role_code).toString());
     query.exec();
-
-    return query;
-}
-
-
-QSqlQuery DataBase::routes()
-{
-    QString str_query;
-    str_query += "SELECT * FROM getActiveRoutes();";
-
-    QSqlQuery query(db);
-    query.prepare(str_query);
-    query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::routesList()
 {
-    QString str_query;
-    str_query += "SELECT * FROM getActiveRoutesShort();";
-
     QSqlQuery query(db);
-    query.prepare(str_query);
+    query.prepare("SELECT * FROM getActiveRoutesShort();");
     query.exec();
-
     return query;
 }
 
 
-QSqlQuery DataBase::routesQueryAll()
+QSqlQuery DataBase::routes()
 {
-    QString str_query;
-    str_query += "SELECT * FROM getAllRoutes();";
-
     QSqlQuery query(db);
-    query.prepare(str_query);
+    query.prepare("SELECT * FROM getAllRoutes();");
     query.exec();
-
     return query;
 }
 
@@ -295,12 +261,9 @@ bool DataBase::routeInfo(int id,
                          int &out_length, QString &out_details,
                          int &out_client_price, int &out_driver_fee_base)
 {
-    QString str_query;
-    str_query += "SELECT * FROM getRouteInfo(:id);";
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", id);
+    query.prepare("SELECT * FROM getRouteInfo(?);");
+    query.bindValue(0, id);
     query.exec();
 
     query.next();
@@ -324,84 +287,36 @@ QSqlQuery DataBase::addRoute(const QString &name,
                              int length, const QString &details,
                              int client_price, int driver_fee_base)
 {
-    QString str_query;
-    str_query += "INSERT INTO routes ("
-                 "    name, active, start_point, end_point, "
-                 "    len, details, client_price, drv_fee_base "
-                 "    ) "
-                 "VALUES ("
-                 "    :name, true, :start, :end, "
-                 "    :len, :details, :clprice, :drvfee"
-                 "    ) "
-                 ";"
-        ;
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":name", name);
-    query.bindValue(":start", start);
-    query.bindValue(":end", end);
-    query.bindValue(":len", length);
-    query.bindValue(":details", details);
-    query.bindValue(":clprice", client_price);
-    query.bindValue(":drvfee", driver_fee_base);
+    query.prepare("SELECT * FROM addRoute(?, ?, ?, ?, ?, ?, ?);");
+    query.bindValue(0, name);
+    query.bindValue(1, start);
+    query.bindValue(2, end);
+    query.bindValue(3, length);
+    query.bindValue(4, details);
+    query.bindValue(5, QString::number(client_price));
+    query.bindValue(6, QString::number(driver_fee_base));
     query.exec();
-
     return query;
 }
 
 
-QSqlQuery DataBase::activateRoute(int id)
+QSqlQuery DataBase::activateRoute(int id, bool activate)
 {
-    QString str_query;
-    str_query += "UPDATE "
-                 "    routes "
-                 "SET "
-                 "    active = true "
-                 "WHERE "
-                 "    id = :id "
-                 ";"
-        ;
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", id);
+    query.prepare("SELECT * FROM activateRoute(?, ?);");
+    query.bindValue(0, id);
+    query.bindValue(1, activate);
     query.exec();
-
-    return query;
-}
-
-
-QSqlQuery DataBase::deactivateRoute(int id)
-{
-    QString str_query;
-    str_query += "UPDATE "
-                 "    routes "
-                 "SET "
-                 "    active = false "
-                 "WHERE "
-                 "    id = :id "
-                 ";"
-        ;
-
-    QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", id);
-    query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::haulages()
 {
-    QString str_query;
-    str_query += "SELECT * FROM getHaulages();";
-
     QSqlQuery query(db);
-    query.prepare(str_query);
+    query.prepare("SELECT * FROM getHaulages();");
     query.exec();
-
     return query;
 }
 
@@ -410,139 +325,61 @@ QSqlQuery DataBase::addHaulage(int route,
                                int first_driver, int first_driver_bonus,
                                int second_driver, int second_driver_bonus)
 {
-    QString str_query;
-    str_query = "INSERT INTO haulages "
-                "    (status, route, start_time, end_time) "
-                "VALUES "
-                "    (0, :route, Now(), NULL) "
-                "RETURNING id "
-                ";"
-        ;
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":route", route);
-
-    bool success;
-    success = query.exec();
-
-    if(success) {
-        query.next();
-        success = !query.value(0).isNull();
-    }
-
-    int new_haulage = 0;
-    if(success) {
-        new_haulage = query.value("id").toInt();
-    } else {
-        return query;
-    }
-
-    str_query = "INSERT INTO drv_haul "
-                "    (haulage, driver, driver_number, driver_bonus) "
-                "VALUES "
-                "    (:new_haulage, :first_driver, 1, :first_driver_bonus) "
-        ;
-
     if(second_driver != 0 && first_driver != second_driver) {
-        str_query += "  , (:new_haulage, :second_driver, 2, :second_driver_bonus) "
-                     ";"
-            ;
+        query.prepare("SELECT * FROM addHaulage(?, ?, ?, ?, ?);");
+    } else {
+        query.prepare("SELECT * FROM addHaulage(?, ?, ?);");
     }
-
-    query.prepare(str_query);
-    query.bindValue(":new_haulage", new_haulage);
-    query.bindValue(":first_driver", first_driver);
-    query.bindValue(":second_driver", second_driver);
-    query.bindValue(":first_driver_bonus", first_driver_bonus);
-    query.bindValue(":second_driver_bonus", second_driver_bonus);
+    query.bindValue(0, route);
+    query.bindValue(1, first_driver);
+    query.bindValue(2, second_driver);
+    query.bindValue(3, first_driver_bonus);
+    query.bindValue(4, second_driver_bonus);
     query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::driverHaulages(int id)
 {
-    QString str_query;
-    str_query += "SELECT * FROM getDriverHaulages(:id);";
-
-    QSqlQuery query(db);
-    query.prepare(str_query);
-
     if(id == 0) {
         id = currentUserID;
     }
-
-    query.bindValue(":id", id);
+    QSqlQuery query(db);
+    query.prepare("SELECT * FROM getDriverHaulages(?);");
+    query.bindValue(0, id);
     query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::successHaulage(int id)
 {
-    QString str_query;
-    str_query += "UPDATE "
-                 "    haulages "
-                 "SET "
-                 "    status = 1, "
-                 "    end_time = now() "
-                 "WHERE "
-                 "    id = :id "
-                 ";"
-        ;
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", id);
+    query.prepare("SELECT * FROM successHaulage(?);");
+    query.bindValue(0, id);
     query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::cancelHaulage(int id)
 {
-    QString str_query;
-    str_query += "UPDATE "
-                 "    haulages "
-                 "SET "
-                 "    status = 2,"
-                 "    end_time = now() "
-                 "WHERE "
-                 "    id = :id "
-                 ";"
-        ;
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", id);
+    query.prepare("SELECT * FROM cancelHaulage(?);");
+    query.bindValue(0, id);
     query.exec();
-
     return query;
 }
 
 
 QSqlQuery DataBase::reopenHaulage(int id)
 {
-    QString str_query;
-    str_query += "UPDATE "
-                 "    haulages "
-                 "SET "
-                 "    status = 0,"
-                 "    end_time = NULL "
-                 "WHERE "
-                 "    id = :id "
-                 ";"
-        ;
-
     QSqlQuery query(db);
-    query.prepare(str_query);
-    query.bindValue(":id", id);
+    query.prepare("SELECT * FROM reopenHaulage(?);");
+    query.bindValue(0, id);
     query.exec();
-
     return query;
 }
 

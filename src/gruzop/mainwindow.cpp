@@ -472,14 +472,14 @@ void RoutesTab::addBasedOnSelectedRoute()
 
 void RoutesTab::activateRoute()
 {
-    db->activateRoute(selectedID());
+    db->activateRoute(selectedID(), true);
     resetQueryModel();
 }
 
 
 void RoutesTab::deactivateRoute()
 {
-    db->deactivateRoute(selectedID());
+    db->activateRoute(selectedID(), false);
     resetQueryModel();
 }
 
@@ -503,7 +503,7 @@ void RoutesTab::showTableContextMenu(QPoint position)
 
 void RoutesTab::resetQueryModel()
 {
-    tableModel->setQuery(db->routesQueryAll());
+    tableModel->setQuery(db->routes());
     table->resizeColumnsToContents();
 }
 
@@ -581,30 +581,6 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
     }
 
     userID = id;
-
-    /*
-    selectPeriodCombo = new QComboBox;
-    tabLayout->addRow("Выберите период", selectPeriodCombo);
-
-    QLabel *setPeriodLabel = new QLabel("Либо задайте его вручную");
-    tabLayout->addRow(setPeriodLabel);
-
-    QLabel *setPeriodLabel = new QLabel("Задайте период");
-    tabLayout->addRow(setPeriodLabel);
-
-    fromDate = new QDateEdit;
-    tabLayout->addRow("От", fromDate);
-
-    toDate = new QDateEdit;
-    tabLayout->addRow("До", toDate);
-
-    confirmPeriodButton = new QPushButton("Подтвердить период");
-    tabLayout->addRow(confirmPeriodButton);
-
-    QFrame *line_1 = new QFrame();
-    line_1->setFrameShape(QFrame::HLine);
-    tabLayout->addRow(line_1);
-    */
 
     if(closable) {
         userEditRO = new QLineEdit;

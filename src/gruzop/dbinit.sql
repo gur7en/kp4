@@ -402,7 +402,179 @@ RETURNS TABLE (
         haulages.end_time, 
         routes.name 
     ;
-
 $$ LANGUAGE SQL
 ;
 
+CREATE FUNCTION getDriverHaulages(driver_id INT)
+RETURNS TABLE (
+    id int, 
+    Статус VARCHAR, 
+    Начато TIMESTAMP, 
+    Завершено TIMESTAMP, 
+    Откуда VARCHAR, 
+    Куда VARCHAR, 
+    База MONEY,
+    Бонус MONEY,
+    Сумма MONEY
+) AS $$
+    WITH temp AS ( 
+        SELECT 
+            haulages.id AS id, 
+            haulages.status AS Статус, 
+            haulages.start_time AS Начато, 
+            haulages.end_time AS Завершено, 
+            routes.start_point AS Откуда, 
+            routes.end_point AS Куда, 
+            routes.drv_fee_base AS База, 
+            drv_haul.driver_bonus AS Бонус, 
+            routes.drv_fee_base + drv_haul.driver_bonus AS Сумма 
+        FROM haulages 
+        JOIN routes 
+            ON haulages.route = routes.id 
+        JOIN drv_haul 
+            ON drv_haul.haulage = haulages.id 
+        JOIN users 
+            ON users.id = drv_haul.driver 
+        WHERE 
+            users.id = driver_id 
+        ORDER BY 
+            haulages.status,
+            haulages.start_time,
+            haulages.end_time, 
+            routes.name 
+    ) (
+    SELECT 
+        id, 
+        CASE 
+            WHEN Статус = 0 THEN 'В работе' 
+            WHEN Статус = 1 THEN 'Завершено' 
+            WHEN Статус = 2 THEN 'Отменено' 
+            ELSE 'Неизвестно' 
+        END Статус, 
+        Начато, Завершено, 
+        Откуда,  Куда, 
+        База, Бонус, 
+        Сумма 
+    FROM temp 
+    ) UNION (
+    SELECT 
+        NULL AS id,
+        'Итого' AS Статус, 
+        NULL AS Начато, NULL AS Завершено, 
+        NULL AS Откуда, NULL AS Куда, 
+        SUM(База) AS База, SUM(Бонус) AS Бонус, 
+        SUM(Сумма) AS Сумма 
+    FROM temp 
+    WHERE Статус != 0 
+    ) 
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION addRoute(
+    name VARCHAR, 
+    start_point VARCHAR, end_point VARCHAR,
+    len INT, details VARCHAR,
+    client_price MONEY, drv_fee_base MONEY
+) RETURNS void
+AS $$
+    INSERT INTO routes (
+        name, active, start_point, end_point, len, 
+        details, client_price, drv_fee_base
+    ) VALUES (
+        name, true, start_point, end_point, len, 
+        details, client_price, drv_fee_base
+    )
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION activateRoute(route_id INT, route_active BOOLEAN) 
+RETURNS void
+AS $$
+    UPDATE routes
+    SET active = route_active
+    WHERE id = route_id
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION addHaulage(
+    route_id INT,
+    driver_1 INT, driver_1_bonus INT,
+    driver_2 INT, driver_2_bonus INT
+) RETURNS void
+AS $$
+    WITH new_haulage AS (
+        INSERT INTO haulages (
+            status, route, start_time, end_time
+        ) VALUES (
+            0, route_id, NOW(), NULL
+        ) RETURNING id
+    ) INSERT INTO drv_haul (
+        haulage, driver, driver_number, driver_bonus
+    ) (
+        SELECT id, driver_1, 1, driver_1_bonus
+        FROM new_haulage
+        UNION
+        SELECT id, driver_2, 2, driver_2_bonus
+        FROM new_haulage
+    )
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION addHaulage(
+    route_id INT,
+    driver INT, driver_bonus INT
+) RETURNS void
+AS $$
+    WITH new_haulage AS (
+        INSERT INTO haulages (
+            status, route, start_time, end_time
+        ) VALUES (
+            0, route_id, NOW(), NULL
+        ) RETURNING id
+    ) INSERT INTO drv_haul (
+        haulage, driver, driver_number, driver_bonus
+    ) (
+        SELECT id, driver, 1, driver_bonus
+        FROM new_haulage
+    )
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION successHaulage(haulage_id INT)
+RETURNS void
+AS $$
+    UPDATE haulages 
+    SET 
+        status = 1, 
+        end_time = now() 
+    WHERE id = haulage_id 
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION cancelHaulage(haulage_id INT)
+RETURNS void
+AS $$
+    UPDATE haulages 
+    SET status = 2 
+    WHERE id = haulage_id 
+    ;
+$$ LANGUAGE SQL
+;
+
+CREATE FUNCTION reopenHaulage(haulage_id INT)
+RETURNS void
+AS $$
+    UPDATE haulages 
+    SET 
+        status = 0, 
+        end_time = NULL
+    WHERE id = haulage_id 
+    ;
+$$ LANGUAGE SQL
+;
