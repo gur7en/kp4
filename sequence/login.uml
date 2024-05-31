@@ -1,0 +1,21 @@
+@startuml
+
+actor "Пользователь" as user
+boundary "Окно входа в систему" as w_login
+boundary "Домашнее окно" as w_home
+database "База данных" as db 
+
+user -> w_login : Ввести имя пользователя
+user -> w_login : Ввести пароль
+user -> w_login : Нажать кнопку\nВход 
+w_login -> db : Проверка корректности введённых данных
+
+alt#Gold #LightBlue Данные верны
+    w_login -> w_home **
+    w_login -> w_login !!
+else #Pink Данные неверны 
+    user <-- w_login : Сообщение об ошибке
+end
+
+@enduml
+

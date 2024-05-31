@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent, DataBase *db)
     central = new QWidget(this);
     setCentralWidget(central);
     layout = new QHBoxLayout(central);
-    resize(640, 480);
+    resize(720, 480);
     resetTabs();
 }
 

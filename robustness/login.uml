@@ -1,0 +1,25 @@
+@startuml
+
+actor "Пользователь" as user
+
+entity "База данных" as db 
+
+boundary "Окно входа" as w_login
+control "Отобразить\nошибку" as derr_login #red
+control "Проверить введённые\nучётные данные" as check
+control "Отобразить\nдомашнее окно" as dw_home
+boundary "Домашнее окно\nпользователя" as w_home
+
+' =============================================================================
+
+user -- w_login
+user -left- w_home
+
+w_login --> check : "Нажата кнопка\nВход"
+check --> derr_login : "Данные не верны"
+check --> dw_home : "Данные верны"
+dw_home --> w_home
+
+check ---> db
+
+@enduml
