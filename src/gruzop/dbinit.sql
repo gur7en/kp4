@@ -15,23 +15,27 @@ CREATE TABLE users (
     phone VARCHAR(16) NOT NULL,
     details VARCHAR
 );
+CREATE UNIQUE INDEX unique_user_login_idx ON users(login) WHERE fired = false;
+CREATE UNIQUE INDEX unique_user_phone_idx ON users(phone) WHERE fired = false;
 
 CREATE TABLE drv_exp (
     driver INT REFERENCES users(id),
-    experience INT NOT NULL
+    experience INT NOT NULL,
+    UNIQUE(driver)
 );
 
 CREATE TABLE routes (
     id SERIAL PRIMARY KEY,
-    name VARCHAR NOT NULL,
+    name VARCHAR NOT NULL CHECK(name != ''),
     active BOOLEAN NOT NULL,
-    start_point VARCHAR NOT NULL,
-    end_point VARCHAR NOT NULL,
+    start_point VARCHAR NOT NULL CHECK(start_point != ''),
+    end_point VARCHAR NOT NULL CHECK(end_point != ''),
     len INT NOT NULL,
     details VARCHAR,
     client_price MONEY,
     drv_fee_base MONEY
 );
+CREATE UNIQUE INDEX unique_route_name_idx ON routes(name) WHERE active = true;
 
 CREATE TABLE haulages (
     id SERIAL PRIMARY KEY,
@@ -45,7 +49,8 @@ CREATE TABLE drv_haul (
     haulage INT REFERENCES haulages(id),
     driver INT REFERENCES users(id),
     driver_number INT,
-    driver_bonus MONEY
+    driver_bonus MONEY,
+    PRIMARY KEY(haulage, driver)
 );
 
 
@@ -57,8 +62,8 @@ VALUES
     (true, 'logist', 'logist3', MD5('logist'), 'Стариков', 'Миокардит', 'Самозамесович', '+79998887764', NULL),
     (false, 'driver', 'driver1', MD5('driver'), 'Петров', 'Пётр', 'Петрович', '+79998887763', 'Пьёт'),
     (false, 'driver', 'driver2', MD5('driver'), 'Сидоров', 'Семён', 'Иванович', '+79998887762', 'Не пьёт'),
-    (false, 'driver', 'driver3', MD5('driver'), 'Потапов', 'Феоклист', 'Иродович', '+79998887762', 'Ест'),
-    (false, 'accounter', 'accounter1', MD5('accounter'), 'Иванов', 'Арсений', 'Полукардович', '+79998887761', NULL)
+    (false, 'driver', 'driver3', MD5('driver'), 'Потапов', 'Феоклист', 'Иродович', '+79998887761', 'Ест'),
+    (false, 'accounter', 'accounter1', MD5('accounter'), 'Иванов', 'Арсений', 'Полукардович', '+79998887760', NULL)
 ;
 
 INSERT INTO drv_exp
@@ -578,3 +583,25 @@ AS $$
     ;
 $$ LANGUAGE SQL
 ;
+
+/*
+
+CREATE FUNCTION checkDuplicateRoutes()
+RETURNS TRIGGER
+AS $$
+    IF SELECT EXISTS ( 
+        SELECT name 
+        FROM NEW 
+        WHERE name IN users
+    )
+$$ LANGUAGE SQL
+;
+
+CREATE TRIGGER checkNewRoute
+BEFORE 
+INSERT OR UPDATE
+routes
+FOR EACH ROW
+    EXECUTE FUNCTION checkDuplicateRoutes
+
+*/

@@ -7,6 +7,7 @@ MainWindow::MainWindow(QWidget *parent, DataBase *db)
 {
     central = new QWidget(this);
     setCentralWidget(central);
+    setWindowTitle("gruzop");
     layout = new QHBoxLayout(central);
     resize(720, 480);
     resetTabs();
@@ -167,6 +168,30 @@ int GeneralizedTableTab::selectedID()
     return table->selectionModel()->currentIndex().data(Qt::UserRole).toInt();
 }
 
+
+void GeneralizedTableTab::resetQueryModel()
+{
+
+    QSqlQuery query = tableUpdateQuery();
+    if(query.lastError().isValid()) {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Error");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Ошибка получения данных!");
+        msgBox.setInformativeText(
+            "Пожалуйста, повторите запрос позднее. "
+            "Если проблема сохраняется, обратитесь к администратору системы."
+            );
+        msgBox.setDetailedText(query.lastError().text());
+        msgBox.exec();
+    } else {
+        tableModel->setQuery(std::move(query));
+        table->resizeColumnsToContents();
+    }
+}
+
 //==============================================================================
 
 LoginTab::LoginTab(DataBase *db)
@@ -206,6 +231,7 @@ void LoginTab::loginPressed()
     role = db->login(username, password);
 
     QMessageBox msgBox;
+    msgBox.setWindowTitle("Error");
     if(role == UserRole::Unlogin) {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Введён неверный логин или пароль!");
@@ -332,23 +358,29 @@ void ProfileTab::changePasswordPressed()
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
     if(!db->checkPasswordCurrentUser(old_password)) {
+        msgBox.setWindowTitle("Error");
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Текущий пароль введён неверно!");
     } else if(new_password.length() < PASSWORD_MIN_LEN) {
+        msgBox.setWindowTitle("Error");
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Новый пароль слишком короткий!");
         QString message = "Пароль должен содержать не менее %1 символов.";
         message = message.arg(PASSWORD_MIN_LEN);
         msgBox.setInformativeText(message);
     } else if(new_password != repeatPasswordEdit->text()) {
+        msgBox.setWindowTitle("Error");
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText("Новый пароль должен совпадать в обоих полях!");
     } else if(!db->changePasswordCurrentUser(new_password)) {
+        msgBox.setWindowTitle("Error");
         msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setText("Не удалось изменить пароль.\n"
-                       "Повторите попытку позднее."
-                       );
+        msgBox.setText(
+            "Не удалось изменить пароль.\n"
+            "Повторите попытку позднее."
+            );
     } else {
+        msgBox.setWindowTitle("Success");
         msgBox.setIcon(QMessageBox::Information);
         msgBox.setText("Пароль успешно изменён.");
     }
@@ -390,10 +422,9 @@ void DriversTab::detailSelectedDriver()
 }
 
 
-void DriversTab::resetQueryModel()
+QSqlQuery DriversTab::tableUpdateQuery()
 {
-    tableModel->setQuery(db->users(UserRole::Driver));
-    table->resizeColumnsToContents();
+    return db->users(UserRole::Driver);
 }
 
 //==============================================================================
@@ -407,10 +438,9 @@ LogistsTab::LogistsTab(DataBase *db)
 }
 
 
-void LogistsTab::resetQueryModel()
+QSqlQuery LogistsTab::tableUpdateQuery()
 {
-    tableModel->setQuery(db->users(UserRole::Logist));
-    table->resizeColumnsToContents();
+    return db->users(UserRole::Logist);
 }
 
 //==============================================================================
@@ -424,10 +454,9 @@ AccountersTab::AccountersTab(DataBase *db)
 }
 
 
-void AccountersTab::resetQueryModel()
+QSqlQuery AccountersTab::tableUpdateQuery()
 {
-    tableModel->setQuery(db->users(UserRole::Accounter));
-    table->resizeColumnsToContents();
+    return db->users(UserRole::Accounter);
 }
 
 //==============================================================================
@@ -501,10 +530,9 @@ void RoutesTab::showTableContextMenu(QPoint position)
 }
 
 
-void RoutesTab::resetQueryModel()
+QSqlQuery RoutesTab::tableUpdateQuery()
 {
-    tableModel->setQuery(db->routes());
-    table->resizeColumnsToContents();
+    return db->routes();
 }
 
 //==============================================================================
@@ -565,10 +593,9 @@ void HaulagesTab::reopenHaulage()
 }
 
 
-void HaulagesTab::resetQueryModel()
+QSqlQuery HaulagesTab::tableUpdateQuery()
 {
-    tableModel->setQuery(db->haulages());
-    table->resizeColumnsToContents();
+    return db->haulages();
 }
 
 //==============================================================================
@@ -608,10 +635,9 @@ DriverDetailTab::DriverDetailTab(DataBase *db, int id, bool closable)
 }
 
 
-void DriverDetailTab::resetQueryModel()
+QSqlQuery DriverDetailTab::tableUpdateQuery()
 {
-    tableModel->setQuery(db->driverHaulages(userID));
-    table->resizeColumnsToContents();
+    return db->driverHaulages(userID);
 }
 
 
@@ -702,11 +728,11 @@ void AddRouteTab::fillFromBaseRoute()
 
 void AddRouteTab::addRoute()
 {
-    QString name = routeNameEdit->text();
-    QString start = fromEdit->text();
-    QString end = toEdit->text();
+    QString name = routeNameEdit->text().trimmed();
+    QString start = fromEdit->text().trimmed();
+    QString end = toEdit->text().trimmed();
     int length = lengthSpin->value();
-    QString details = descriptionEdit->text();
+    QString details = descriptionEdit->text().trimmed();
     int client_price = priceSpin->value();
     int driver_fee = driverFeeSpin->value();
 
@@ -714,8 +740,25 @@ void AddRouteTab::addRoute()
     query = db->addRoute(name, start, end, length, details,
                          client_price, driver_fee);
 
-    emit requestUpdateTable();
-    close();
+    if(query.lastError().isValid()) {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Error");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Ошибка при добавлении данных!");
+        msgBox.setInformativeText(
+            "Убедитесь, что вы ввели все необходимые данные, и что "
+            "имя маршрута не повторяется среди активных, "
+            "после чего повторите запрос. "
+            "Если проблема сохраняется, обратитесь к администратору системы."
+            );
+        msgBox.setDetailedText(query.lastError().text());
+        msgBox.exec();
+    } else {
+        emit requestUpdateTable();
+        close();
+    }
 }
 
 
@@ -804,8 +847,23 @@ void AddHaulageTab::addHaulage()
                            firstID, first_bonus,
                            secondID, second_bonus);
 
-    emit requestUpdateTable();
-    close();
+    if(query.lastError().isValid()) {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Error");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Ошибка при добавлении данных!");
+        msgBox.setInformativeText("Пожалуйста, повторите запрос позднее. "
+                                  "Если проблема сохраняется, "
+                                  "обратитесь к администратору системы."
+                                  );
+        msgBox.setDetailedText(query.lastError().text());
+        msgBox.exec();
+    } else {
+        emit requestUpdateTable();
+        close();
+    }
 }
 
 

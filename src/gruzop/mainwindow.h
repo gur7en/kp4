@@ -42,7 +42,7 @@ public:
 
 public slots:
     virtual void showTableContextMenu(QPoint position);
-    virtual void resetQueryModel() = 0;
+    virtual void resetQueryModel();
 
 protected:
     DataBase *db;
@@ -53,6 +53,7 @@ protected:
     QAction *updateTableAction;
 
     int selectedID();
+    virtual QSqlQuery tableUpdateQuery() = 0;
 
 };
 
@@ -143,7 +144,7 @@ public:
     DriversTab(DataBase *db);
 
 public slots:
-    void resetQueryModel();
+    QSqlQuery tableUpdateQuery();
     void showTableContextMenu(QPoint position);
     void detailSelectedDriver();
 
@@ -165,7 +166,7 @@ public:
     LogistsTab(DataBase *db);
 
 public slots:
-    void resetQueryModel();
+    QSqlQuery tableUpdateQuery();
 
 };
 
@@ -178,7 +179,7 @@ public:
     AccountersTab(DataBase *db);
 
 public slots:
-    void resetQueryModel();
+    QSqlQuery tableUpdateQuery();
 
 };
 
@@ -191,7 +192,7 @@ public:
     RoutesTab(DataBase *db);
 
 public slots:
-    void resetQueryModel();
+    QSqlQuery tableUpdateQuery();
     void showTableContextMenu(QPoint position);
     void addBlankRoute();
     void addBasedOnSelectedRoute();
@@ -218,7 +219,7 @@ public:
     HaulagesTab(DataBase *db);
 
 public slots:
-    void resetQueryModel();
+    QSqlQuery tableUpdateQuery();
     void addBlankHaulage();
     void successHaulage();
     void cancelHaulage();
@@ -243,7 +244,7 @@ public:
     DriverDetailTab(DataBase *db, int id = 0, bool closable = false);
 
 public slots:
-    void resetQueryModel();
+    QSqlQuery tableUpdateQuery();
     void close();
 
 private:
