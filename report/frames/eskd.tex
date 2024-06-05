@@ -1,0 +1,37 @@
+\newcommand{\No}{\textnumero}
+\documentclass[russian,utf8,simple]{eskdtext}
+\usepackage[T2A]{fontenc}
+\usepackage{expl3}
+
+\renewcommand{\rmdefault}{Tempora-TLF}
+
+\ESKDauthor{Кулешов~А.\,В.} 
+\ESKDchecker{Васильев~В.С.} 
+\ESKDdate{2024/06/04}
+\ESKDgroup{КИ22-06Б}
+\ESKDcolumnI{Информационная система <<Грузоперевозки>>}
+\ESKDcolumnII{КП 09.03.01 -- 032215219 -- ПЗ}
+\ESKDletter{}{}{}
+
+% \renewcommand{\ESKDtheTitleFieldX}{\normalfont Красноярск \ESKDtheYear} 
+\renewcommand{\ESKDtheTitleFieldX}{} 
+
+
+\newcommand\blankpage{
+    \clearpage
+    \null
+    \clearpage
+}
+
+\ExplSyntaxOn
+\cs_new_eq:NN \Repeat \prg_replicate:nn
+\ExplSyntaxOff
+
+\begin{document} 
+
+\maketitle 
+\Repeat{11}{
+    \blankpage
+}
+
+\end{document} 

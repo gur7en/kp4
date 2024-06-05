@@ -143,6 +143,7 @@ GeneralizedTableTab::GeneralizedTableTab(DataBase *db)
     table->setContextMenuPolicy(Qt::CustomContextMenu);
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    // table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table->setModel(tableModel);
     connect(table, &QTableView::customContextMenuRequested,
             this, &GeneralizedTableTab::showTableContextMenu);
@@ -189,6 +190,7 @@ void GeneralizedTableTab::resetQueryModel()
     } else {
         tableModel->setQuery(std::move(query));
         table->resizeColumnsToContents();
+        // table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     }
 }
 

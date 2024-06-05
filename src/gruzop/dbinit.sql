@@ -584,24 +584,3 @@ AS $$
 $$ LANGUAGE SQL
 ;
 
-/*
-
-CREATE FUNCTION checkDuplicateRoutes()
-RETURNS TRIGGER
-AS $$
-    IF SELECT EXISTS ( 
-        SELECT name 
-        FROM NEW 
-        WHERE name IN users
-    )
-$$ LANGUAGE SQL
-;
-
-CREATE TRIGGER checkNewRoute
-BEFORE 
-INSERT OR UPDATE
-routes
-FOR EACH ROW
-    EXECUTE FUNCTION checkDuplicateRoutes
-
-*/

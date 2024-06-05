@@ -1,0 +1,73 @@
+\newgeometry{
+  a4paper,
+  left=25mm,
+  right=10mm,
+  top=15mm,
+  bottom=15mm
+}
+
+\newcommand\tline[2]{
+    $
+    \underset{
+        \text{\raisebox{-0.5ex}{\footnotesize #1}}
+    }{
+        \text{\underline{\raisebox{0.5ex}{#2}}}
+    }
+    $
+}
+
+\begin{titlepage}
+
+    \centering
+
+    {\large Министерство науки и высшего образования РФ} 
+
+    Федеральное государственное автономное
+
+    образовательное учреждение высшего образования 
+
+    {\bfseries <<СИБИРСКИЙ ФЕДЕРАЛЬНЫЙ УНИВЕРСИТЕТ>>} 
+
+    \bigskip
+
+    Институт космических и информационных технологий
+
+    Кафедра вычислительной техники
+
+    \vfill
+
+    {\large\bfseries \MakeUppercase{Курсовой проект}} \\[\baselineskip]
+    Информационная система <<Грузоперевозки>>  \\
+
+    \vfill
+
+    \begin{tabular}{l c c r}
+        Руководитель 
+        & 
+        &
+        \tline{подпись, дата}{\hspace{6em}}
+        &
+        \tline{инициалы, фамилия}{
+            \hspace{0.5em} В. С. Васильев \hspace{0.5em}
+        }
+        \\[1cm]
+        Студент 
+        & 
+        \tline{номер группы, зачётной книжки}{
+            \hspace{0.5em} КИ22-06Б, 032215219 \hspace{0.5em}
+        } 
+        &
+        \tline{подпись, дата} {\hspace{6em}}
+        &
+        \tline{инициалы, фамилия}{
+            \hspace{0.5em} А. В. Кулешов \hspace{0.5em}
+        }
+        \\
+    \end{tabular}
+
+    \vfill
+
+    Красноярск \the\year
+\end{titlepage}
+
+\restoregeometry

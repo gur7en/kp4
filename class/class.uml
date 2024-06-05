@@ -84,36 +84,30 @@ abstract class GeneralizedTableTab {
 
 class DriversTab {
     + Constructor(DataBase *db)
-    + void //resetTable()//
 }
 
 class LogistsTab {
     + Constructor(DataBase *db)
-    + void //resetTable()//
 }
 
 class AccountersTab {
     + Constructor(DataBase *db)
-    + void //resetTable()//
 }
 
 class DriverDetailsTab {
     + Constructor(DataBase *db)
-    + void //resetTable()//
 }
 
 class RoutesTab {
     + Constructor(DataBase *db)
     + void addRoute()
     + void changeRouteStatus(int routeID, int new_status)
-    + void //resetTable()//
 }
 
 class HaulagesTab {
     + Constructor(DataBase *db)
     + void addHaulage()
     + void changeHaulageStatus(int haulageID, int new_status)
-    + void //resetTable()//
 }
 
 class AddRouteTab {

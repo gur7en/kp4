@@ -1,0 +1,126 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T2A]{fontenc}
+\usepackage[russian]{babel}
+\usepackage{indentfirst}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{graphicx}
+\usepackage{pdfpages}
+\usepackage{caption}
+\usepackage{amsmath}
+\sloppy
+
+\usepackage[
+  a4paper,
+  left=25mm,
+  right=10mm,
+  top=15mm,
+  bottom=30mm
+]{geometry} 
+
+\renewcommand{\rmdefault}{Tempora-TLF}
+
+\KOMAoptions{
+  toc=bibliography,
+  toc=chapterentrywithdots
+}
+
+% Красная строка
+\setlength\parindent{12.5mm}
+
+% Чтобы старался предотвратить страницы с одной строкой
+\clubpenalty=9999
+\widowpenalty=9999
+
+\dottedcontents{chapter}[1em]{}{1em}{5}
+\dottedcontents{section}[2.5em]{}{1.75em}{5}
+\dottedcontents{subsection}[4.75em]{}{2.5em}{5}
+
+\titleformat{\chapter}{\normalsize \bfseries}{\thechapter}{1ex}{}
+\titleformat{\section}{\normalsize \bfseries}{\thesection}{1ex}{}
+\titleformat{\subsection}{\normalsize \bfseries}{\thesubsection}{1ex}{}
+
+\titlespacing*{\chapter}{\parindent}{*2}{*2}
+\titlespacing*{\section}{\parindent}{*2}{*2}
+\titlespacing*{\subsection}{\parindent}{*2}{*2}
+
+% Глава без номера и занесения в содержание
+\newcommand\phchapter[1]{
+  \chapter*{\centerline{\MakeUppercase{#1}}}
+  \par
+}
+
+% Глава без номера, но с занесением в содержание
+\newcommand\unchapter[1]{
+  \phchapter{#1}
+  \addcontentsline{toc}{chapter}{#1}
+  \par
+}
+
+% Заголовок библиографии
+\renewcaptionname{russian}{\bibname}{Список использованных источников}
+\makeatletter
+\renewcommand*\bib@heading{
+  \unchapter{\bibname}
+  \@mkboth{\MakeMarkcase{\bibname}}{\MakeMarkcase{\bibname}}}
+\makeatother
+
+% Заголовок оглавления
+\renewcaptionname{russian}{\contentsname}{
+  \normalfont \bfseries \centerline{\MakeUppercase{Содержание}}
+}
+
+\captionsetup[figure]{
+  name=Рисунок, 
+  labelsep=endash, 
+  justification=centering,
+  figurewithin=none
+}
+
+\newcommand\image[4][0.5]{
+  \begin{figure}[h]
+    \vspace{2ex}
+    \centering
+    \includegraphics[width=#1\textwidth]{#2}
+    \caption{#3}
+    \label{#4}
+    \vspace{2ex}
+  \end{figure}
+}
+
+% Меняем поведение appendix, чтобы был другой заголовок у приложений
+\renewcommand{\appendixname}{Приложение}
+\makeatletter
+\renewcommand{\appendix}{\par%
+  \renewcommand{\thechapter}{\Asbuk{chapter}}
+  \setcounter{chapter}{0}
+  \setcounter{section}{0}
+  \setcounter{subsection}{0}
+  \setcounter{figure}{0}
+  \dottedcontents{chapter}[6.5em]{}{6.5em}{5}
+  \titleformat{\chapter}[display]
+    {\normalfont \bfseries}
+    {\centering \MakeUppercase{\appendixname\ \thechapter}}
+    {4ex}{\bfseries \centering}
+  \titlecontents{chapter}[0]{}
+    {\appendixname\ \contentslabel{0}\hspace{1.2em}}
+    {}
+    {\titlerule*[5]{.}\contentspage}
+  \captionsetup[figure]{figurewithin=chapter}
+}
+\makeatother
+
+% Сливаем с файлом, чтобы была рамка
+\AddToShipoutPicture{
+  \AtPageLowerLeft{
+    % Почему-то \AtPageLowerLeft смещает картинку вправо на 2mm
+    % А eskdx генерирует рамку смещённую вниз на 1mm
+    \put(-2mm, 1mm){
+      \includegraphics[page=\value{page}]{./frames/eskd.pdf}
+    }
+  }
+}
+
+% Убираем номера страниц, они есть на рамке
+\renewcommand*\pagemark{}
+
