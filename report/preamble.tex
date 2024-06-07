@@ -8,7 +8,6 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{hhline}
-\usepackage{xassoccnt}
 \usepackage{listings}
 \usepackage{lastpage}
 \usepackage{pdfpages}
@@ -23,7 +22,7 @@
   left=25mm,
   right=10mm,
   top=15mm,
-  bottom=25mm
+  bottom=30mm
 ]{geometry} 
 
 \renewcommand{\rmdefault}{Tempora-TLF}
@@ -32,13 +31,6 @@
   toc=bibliography,
   toc=chapterentrywithdots
 }
-
-% Счётчики
-\NewTotalDocumentCounter{totalfigures}
-\NewTotalDocumentCounter{totaltables}
-\NewTotalDocumentCounter{appendixchapters}
-\DeclareAssociatedCounters{figure}{totalfigures}
-\DeclareAssociatedCounters{table}{totaltables}
 
 % Красная строка
 \setlength\parindent{12.5mm}
@@ -118,7 +110,6 @@
   \setcounter{section}{0}
   \setcounter{subsection}{0}
   \setcounter{figure}{0}
-  \AddAssociatedCounters{chapter}{appendixchapters}
   \dottedcontents{chapter}[6.5em]{}{6.5em}{5}
   \titleformat{\chapter}[display]
     {\normalfont \bfseries}
