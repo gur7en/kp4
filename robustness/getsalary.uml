@@ -1,0 +1,29 @@
+@startuml
+skinparam defaultFontName Liberation Serif
+
+actor "Водитель" as driver
+
+entity "База данных" as db 
+
+boundary "Домашнее окно\nводителя" as w_home
+
+control "Проверить\nпериод" as check_period
+control "Отобразить\nперевозки\nза период" as dt_period
+control "Отобразить\nошибку\nпериода" as derr_period #red
+control "Рассчитать\nзарплату" as calc_salary
+
+' =============================================================================
+
+driver -- w_home
+
+w_home --> check_period : "Период\nизменён"
+check_period --> derr_period : "Неверный\nпериод"
+check_period --> dt_period : "Успех"
+w_home --> calc_salary : "Список\nперевозок\nне пуст"
+dt_period --> w_home
+
+dt_period --> db
+check_period --> db
+calc_salary --> db
+
+@enduml

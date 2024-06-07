@@ -1,0 +1,39 @@
+@startuml
+skinparam defaultFontName Liberation Serif
+
+actor "Логист" as logist
+
+entity "База данных" as db 
+
+boundary "Домашнее окно\nлогиста" as w_home
+control "Закрыть вкладку" as ct_addtran
+control "Открыть вкладку\nПеревозки" as ot_tran
+
+boundary "Вкладка добавления\nперевозки" as t_addtran
+control "Добавить вкладку\nдобавления перевозки" as at_addtran
+control "Запрос списков\nводителей и маршрутов" as get_drv_tran
+control "Обновление списков\nводителей и маршрутов" as upd_drv_tran
+control "Добавить перевозку" as add_tran
+
+' =============================================================================
+
+logist -- w_home
+logist -- t_addtran
+
+w_home --> ot_tran
+ct_addtran --> w_home
+
+w_home --> at_addtran : "Нажата кнопка\nДобавить"
+at_addtran --> t_addtran
+
+t_addtran --> get_drv_tran : "При открытии\nвкладки"
+get_drv_tran --> upd_drv_tran
+upd_drv_tran --> t_addtran
+t_addtran --> add_tran : "Нажата кнопка\nПодтвердить"
+t_addtran --> ct_addtran : "Нажата кнопка\nОтмена"
+add_tran --> ct_addtran
+
+add_tran --> db
+get_drv_tran --> db
+
+@enduml

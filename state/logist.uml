@@ -1,4 +1,5 @@
 @startuml
+skinparam defaultFontName Liberation Serif
 
 state "Окно входа" as login
 state "Домашнее окно" as home

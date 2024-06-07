@@ -1,0 +1,36 @@
+@startuml
+skinparam defaultFontName Liberation Serif
+
+actor "Бухгалтер" as accounter
+
+entity "База данных" as db 
+
+boundary "Домашнее окно\nбухгалтера" as w_home
+control "Открыть вкладку\nЛогисты" as ot_logists
+control "Открыть вкладку\nВодители" as ot_drivers
+control "Открыть вкладку\nБухгалтеры" as ot_accounters
+
+control "Получить список\nлогистов" as list_users_logists
+control "Получить список\nводителей" as list_users_drivers
+control "Получить список\nбухгалтеров" as list_users_accounters
+
+' =============================================================================
+
+accounter -- w_home
+
+w_home --> ot_logists
+ot_logists --> list_users_logists
+w_home --> ot_drivers
+ot_drivers --> list_users_drivers
+w_home --> ot_accounters
+ot_accounters --> list_users_accounters
+
+list_users_logists --> db
+list_users_drivers --> db
+list_users_accounters --> db
+
+list_users_logists --> w_home
+list_users_drivers --> w_home
+list_users_accounters --> w_home
+
+@enduml

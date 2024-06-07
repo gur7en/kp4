@@ -5,9 +5,16 @@
 \usepackage{titlesec}
 \usepackage{titletoc}
 \usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{svg}
+\usepackage{totcount}
+\usepackage{listings}
+\usepackage{lastpage}
 \usepackage{pdfpages}
 \usepackage{caption}
 \usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{enumitem}
 \sloppy
 
 \usepackage[
@@ -15,7 +22,7 @@
   left=25mm,
   right=10mm,
   top=15mm,
-  bottom=30mm
+  bottom=25mm
 ]{geometry} 
 
 \renewcommand{\rmdefault}{Tempora-TLF}
@@ -34,7 +41,7 @@
 
 \dottedcontents{chapter}[1em]{}{1em}{5}
 \dottedcontents{section}[2.5em]{}{1.75em}{5}
-\dottedcontents{subsection}[4.75em]{}{2.5em}{5}
+\dottedcontents{subsection}[4.75em]{}{3em}{5}
 
 \titleformat{\chapter}{\normalsize \bfseries}{\thechapter}{1ex}{}
 \titleformat{\section}{\normalsize \bfseries}{\thesection}{1ex}{}
@@ -77,14 +84,14 @@
   figurewithin=none
 }
 
-\newcommand\image[4][0.5]{
+\newcommand\image[4][1]{
   \begin{figure}[h]
-    \vspace{2ex}
+    \vspace{0}
     \centering
     \includegraphics[width=#1\textwidth]{#2}
     \caption{#3}
     \label{#4}
-    \vspace{2ex}
+    \vspace{0}
   \end{figure}
 }
 
@@ -124,3 +131,14 @@
 % Убираем номера страниц, они есть на рамке
 \renewcommand*\pagemark{}
 
+% Меняем настройки для маркированных списков
+\setlist[itemize,1]{label=-}
+\setlist[itemize]{
+  wide, labelindent=\parindent, 
+  noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt
+}
+% Меняем настройки для нумерованных списков
+\setlist[enumerate]{
+  wide, labelindent=\parindent, 
+  noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt
+}

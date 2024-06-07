@@ -1,0 +1,12 @@
+@startuml
+skinparam defaultFontName Liberation Serif
+
+actor "Бухгалтер" as accountant
+
+usecase "Получение списка\nпользователей" as list_user
+usecase "Расчёт зарплаты\nводителя" as salary_drv
+
+accountant -right-> list_user
+accountant -left-> salary_drv
+
+@enduml
