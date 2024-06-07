@@ -16,7 +16,7 @@ control "Получить список\nбухгалтеров" as list_users_ac
 
 ' =============================================================================
 
-accounter -- w_home
+accounter -right- w_home
 
 w_home --> ot_logists
 ot_logists --> list_users_logists

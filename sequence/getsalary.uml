@@ -8,11 +8,11 @@ database "База данных" as db
 ' activate w_home
 driver -> w_home : Изменить\nпериод
 w_home -> w_home : Проверить\nпериод
-alt#Gold #LightBlue Успешно
+alt Успешно
     w_home -> db : Запрос списка\nперевозок
     w_home <-- db : Список\nперевозок
     w_home -> w_home : Рассчитать\nзарплату\nза период
-else #Pink Неверный период
+else Неверный период
     driver <-- w_home : Сообщение\nоб ошибке
 end
 

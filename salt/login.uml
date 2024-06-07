@@ -1,9 +1,9 @@
 @startsalt
-
-scale 2
+skinparam defaultFontName Liberation Serif
 
 {+
 
+{/ Вход в систему }
 {
     Логин  | "Username "
     Пароль | "****     "

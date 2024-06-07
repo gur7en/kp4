@@ -5,9 +5,10 @@
 \usepackage{titlesec}
 \usepackage{titletoc}
 \usepackage{graphicx}
-\usepackage{tikz}
-\usepackage{svg}
-\usepackage{totcount}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{hhline}
+\usepackage{xassoccnt}
 \usepackage{listings}
 \usepackage{lastpage}
 \usepackage{pdfpages}
@@ -31,6 +32,13 @@
   toc=bibliography,
   toc=chapterentrywithdots
 }
+
+% Счётчики
+\NewTotalDocumentCounter{totalfigures}
+\NewTotalDocumentCounter{totaltables}
+\NewTotalDocumentCounter{appendixchapters}
+\DeclareAssociatedCounters{figure}{totalfigures}
+\DeclareAssociatedCounters{table}{totaltables}
 
 % Красная строка
 \setlength\parindent{12.5mm}
@@ -81,17 +89,23 @@
   name=Рисунок, 
   labelsep=endash, 
   justification=centering,
-  figurewithin=none
+  % figurewithin=none
+}
+\captionsetup[table]{
+  singlelinecheck=false,
+  name=Таблица, 
+  labelsep=endash, 
+  justification=justified,
+  % tablewithin=none
 }
 
+\renewcommand{\thesubfigure}{\asbuk{subfigure}}
 \newcommand\image[4][1]{
-  \begin{figure}[h]
-    \vspace{0}
+  \begin{figure}[h!]
     \centering
     \includegraphics[width=#1\textwidth]{#2}
     \caption{#3}
     \label{#4}
-    \vspace{0}
   \end{figure}
 }
 
@@ -104,6 +118,7 @@
   \setcounter{section}{0}
   \setcounter{subsection}{0}
   \setcounter{figure}{0}
+  \AddAssociatedCounters{chapter}{appendixchapters}
   \dottedcontents{chapter}[6.5em]{}{6.5em}{5}
   \titleformat{\chapter}[display]
     {\normalfont \bfseries}
@@ -113,7 +128,7 @@
     {\appendixname\ \contentslabel{0}\hspace{1.2em}}
     {}
     {\titlerule*[5]{.}\contentspage}
-  \captionsetup[figure]{figurewithin=chapter}
+  % \captionsetup[figure]{figurewithin=chapter}
 }
 \makeatother
 

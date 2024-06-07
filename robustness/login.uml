@@ -13,14 +13,14 @@ boundary "Домашнее окно\nпользователя" as w_home
 
 ' =============================================================================
 
-user -- w_login
+user -right- w_login
 user -left- w_home
 
 w_login --> check : "Нажата кнопка\nВход"
-check --> derr_login : "Данные не верны"
+check -right-> derr_login : "Данные не верны"
 check --> dw_home : "Данные верны"
 dw_home --> w_home
 
-check ---> db
+check --> db
 
 @enduml

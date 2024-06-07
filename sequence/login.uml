@@ -11,10 +11,10 @@ user -> w_login : Ввести пароль
 user -> w_login : Нажать кнопку\nВход 
 w_login -> db : Проверка корректности введённых данных
 
-alt#Gold #LightBlue Данные верны
+alt Данные верны
     w_login -> w_home **
     w_login -> w_login !!
-else #Pink Данные неверны 
+else Данные неверны 
     user <-- w_login : Сообщение об ошибке
 end
 

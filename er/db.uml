@@ -53,7 +53,7 @@ entity "Drivers for haulage" as drv_haul {
     driver_bonus : money
 }
 
-users ||-right-o| drv_exp
+users ||-down-o| drv_exp
 haulages ||-right-|{ drv_haul
 haulages ||-down-o{ routes
 drv_haul }o-down-|| users

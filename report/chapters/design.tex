@@ -4,26 +4,26 @@
 
 \section{Диаграммы пригодности и последовательности}
 
-\newcommand*\addUsecase[2]{
+\newcommand*\addUsecase[4]{
     \subsection{Прецедент <<#2>>}
     На рисунке \ref{fig:robustness:#1} представлена диаграмма 
     пригодности для данного прецедента.
     На рисунке \ref{fig:sequence:#1} представлена диаграмма 
     последовательности для данного прецедента.
-    \image[0.5]
+    \image[#3]
         {diagrams/robustness/#1}
         {Диаграмма пригодности для прецедента <<#2>>}
         {fig:robustness:#1}
-    \image[0.5]
+    \image[#4]
         {diagrams/sequence/#1}
         {Диаграмма последовательности для прецедента <<#2>>}
         {fig:sequence:#1}
 }
-\addUsecase{login}{войти в систему}
-\addUsecase{changepassword}{сменить пароль}
-\addUsecase{addtransp}{назначить перевозку}
-\addUsecase{listusers}{просмотреть список пользователей}
-\addUsecase{getsalary}{просмотреть свои перевозки}
+\addUsecase{login}{войти в систему}{1}{1}
+\addUsecase{changepassword}{сменить пароль}{1}{1}
+\addUsecase{addtransp}{назначить перевозку}{1}{0.85}
+\addUsecase{listusers}{просмотреть список пользователей}{0.75}{0.5}
+\addUsecase{getsalary}{просмотреть свои перевозки}{0.7}{0.7}
 
 
 \section{ER-диаграмма}

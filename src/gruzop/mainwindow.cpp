@@ -190,7 +190,7 @@ void GeneralizedTableTab::resetQueryModel()
     } else {
         tableModel->setQuery(std::move(query));
         table->resizeColumnsToContents();
-        // table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+        table->horizontalHeader()->setStretchLastSection(true);
     }
 }
 
